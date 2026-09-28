@@ -1,0 +1,1452 @@
+<title>ICBC BC Road Data Explorer</title>
+
+<style>
+  :root{
+    color-scheme:light;
+    --plane:#f4f6f8; --surface:#fcfdfe; --ink:#0e1216; --ink2:#51565c; --muted:#8b9096;
+    --grid:#e4e8ec; --base:#c9ced4; --border:rgba(14,18,22,.10); --shadow:rgba(14,18,22,.06);
+    --accent:#2a78d6; --accent-soft:rgba(42,120,214,.12);
+    --s1:#8ab8f0; --s2:#5f9fe9; --s3:#3987e5; --s4:#2a78d6; --s5:#2160b4;
+    --s6:#1a4f97; --s7:#143d78; --s8:#0d2b57; --sOther:#a2a8ae;
+    --map-land:#eceff1; --map-out:#e2e5e8; --map-water:#c9d6e2; --map-road:#ffffff; --map-case:#d3d8dd;
+    --map-major:#f6dca6; --map-majcase:#d9b77a; --map-label:#3b4148; --map-halo:#f4f6f8;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:where(:not([data-theme="light"])){
+      color-scheme:dark;
+      --plane:#0c0e10; --surface:#17191c; --ink:#ffffff; --ink2:#b9bec4; --muted:#868b91;
+      --grid:#26292d; --base:#33373c; --border:rgba(255,255,255,.12); --shadow:rgba(0,0,0,.4);
+      --accent:#3987e5; --accent-soft:rgba(57,135,229,.18);
+      --s1:#cfe0fb; --s2:#a8c9f6; --s3:#86b6ef; --s4:#5f9fe9; --s5:#3f92e6;
+      --s6:#2a78d6; --s7:#2160b4; --s8:#164a90; --sOther:#7c8288;
+    --map-land:#1b1e22; --map-out:#15171a; --map-water:#0f1b27; --map-road:#353a41; --map-case:#24282d;
+    --map-major:#5b4f3a; --map-majcase:#3a3328; --map-label:#c9ced4; --map-halo:#111316;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --plane:#0c0e10; --surface:#17191c; --ink:#ffffff; --ink2:#b9bec4; --muted:#868b91;
+    --grid:#26292d; --base:#33373c; --border:rgba(255,255,255,.12); --shadow:rgba(0,0,0,.4);
+    --accent:#3987e5; --accent-soft:rgba(57,135,229,.18);
+    --s1:#cfe0fb; --s2:#a8c9f6; --s3:#86b6ef; --s4:#5f9fe9; --s5:#3f92e6;
+    --s6:#2a78d6; --s7:#2160b4; --s8:#164a90; --sOther:#7c8288;
+    --map-land:#1b1e22; --map-out:#15171a; --map-water:#0f1b27; --map-road:#353a41; --map-case:#24282d;
+    --map-major:#5b4f3a; --map-majcase:#3a3328; --map-label:#c9ced4; --map-halo:#111316;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--plane);color:var(--ink);font-family:var(--font);
+    -webkit-font-smoothing:antialiased;line-height:1.45}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px 64px}
+  header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--plane) 88%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  .head-inner{max-width:1180px;margin:0 auto;padding:16px 20px 14px;
+    display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  h1{font-size:22px;margin:2px 0 0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+  .sub{color:var(--ink2);font-size:13px;margin-top:3px;max-width:60ch}
+  .controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  .ctl label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);font-weight:600;margin-bottom:5px}
+  .combo{position:relative}
+  .combo-btn{display:flex;align-items:center;gap:8px;width:300px;max-width:82vw;font-family:var(--font);
+    font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--border);
+    border-radius:8px;padding:8px 10px;cursor:pointer;text-align:left}
+  .combo-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .combo-btn .mag{color:var(--muted);font-size:14px;flex:none}
+  .combo-summary{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .combo-btn .caret{color:var(--muted);font-size:11px;flex:none}
+  .combo-panel{position:absolute;z-index:40;top:calc(100% + 5px);left:0;width:320px;max-width:88vw;
+    background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px;
+    box-shadow:0 10px 30px var(--shadow)}
+  .combo-panel input{width:100%;font-family:var(--font);font-size:14px;color:var(--ink);
+    background:var(--plane);border:1px solid var(--border);border-radius:7px;padding:7px 9px;margin-bottom:6px}
+  .combo-panel input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .combo-list{list-style:none;margin:0;padding:0;max-height:300px;overflow-y:auto}
+  .combo-list li{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:7px;cursor:pointer;
+    font-size:13.5px;color:var(--ink);white-space:nowrap}
+  .combo-list li.active,.combo-list li:hover{background:var(--accent-soft)}
+  .combo-list li .cb{width:15px;height:15px;border:1.5px solid var(--base);border-radius:4px;flex:none;
+    display:inline-flex;align-items:center;justify-content:center;font-size:10px;color:#fff;line-height:1}
+  .combo-list li[aria-selected="true"] .cb{background:var(--accent);border-color:var(--accent)}
+  .combo-list li .nm{flex:1;overflow:hidden;text-overflow:ellipsis}
+  .combo-list li .reg{color:var(--muted);font-size:12px;flex:none}
+  .combo-empty{padding:10px;color:var(--muted);font-size:13px}
+  .combo-foot{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:7px;
+    border-top:1px solid var(--border)}
+  .combo-foot #selCount{font-size:12px;color:var(--muted)}
+  .combo-foot button{font-family:var(--font);font-size:12.5px;color:var(--accent);background:none;border:none;
+    cursor:pointer;font-weight:600;padding:4px 6px;border-radius:6px}
+  .combo-foot button:hover{background:var(--accent-soft)}
+  .combo-list mark{background:var(--accent-soft);color:var(--ink);border-radius:3px;padding:0 1px}
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px}
+  .seg button{font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink2);background:none;
+    border:none;border-radius:6px;padding:7px 13px;cursor:pointer}
+  .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+  .seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0 8px}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 16px;
+    box-shadow:0 1px 2px var(--shadow)}
+  .kpi .k-label{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .kpi .k-val{font-size:30px;font-weight:700;margin-top:6px;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums}
+  .kpi .k-unit{font-size:14px;font-weight:600;color:var(--ink2)}
+  .kpi .k-delta{font-size:12.5px;margin-top:5px;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .k-delta .arrow{font-weight:700;color:var(--accent)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px 12px;
+    box-shadow:0 1px 2px var(--shadow);min-width:0}
+  .card.full{grid-column:1 / -1}
+  .card h2{font-size:14.5px;margin:0;font-weight:700;letter-spacing:-.005em}
+  .card .note{font-size:12px;color:var(--muted);margin:2px 0 12px}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-top:12px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2)}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .axis,text.axis{fill:var(--ink2);font-size:11px}
+  .axis-title{fill:var(--ink2);font-size:11px;letter-spacing:.04em}
+  .gridline{stroke:var(--grid);stroke-width:1}
+  .baseline{stroke:var(--base);stroke-width:1}
+  .val-lbl{fill:var(--ink);font-size:11px;font-weight:600;font-variant-numeric:tabular-nums}
+
+  .tt{position:fixed;pointer-events:none;z-index:50;background:var(--ink);color:var(--surface);
+    font-size:12px;line-height:1.4;padding:7px 9px;border-radius:7px;opacity:0;transition:opacity .1s;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);max-width:230px;font-variant-numeric:tabular-nums}
+  .tt b{color:var(--surface)}
+  .tt .r{display:flex;justify-content:space-between;gap:14px}
+  .tt .sw{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:baseline}
+
+  details.tablewrap{margin-top:20px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:6px 18px}
+  details.tablewrap summary{cursor:pointer;font-weight:600;font-size:13.5px;padding:10px 0;color:var(--ink)}
+  .tscroll{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums;margin:8px 0 14px}
+  th,td{text-align:right;padding:6px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+  footer.foot{margin-top:26px;color:var(--muted);font-size:12px;line-height:1.6}
+  footer.foot a{color:var(--accent)}
+  .hl{color:var(--ink);font-weight:600}
+  @media (max-width:820px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .grid{grid-template-columns:1fr}
+    .head-inner{flex-direction:column;align-items:stretch}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+  /* ===== app tab bar + panels ===== */
+  .app-top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:22px;
+    padding:10px 20px;background:color-mix(in srgb,var(--plane) 92%,transparent);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  .app-brand{font-weight:700;font-size:15px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+  .app-dot{width:11px;height:11px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 0 4px var(--accent-soft)}
+  .app-tabs{display:flex;gap:4px}
+  .app-tab{font-family:var(--font);font-size:14px;font-weight:600;color:var(--ink2);background:none;
+    border:none;border-radius:8px;padding:7px 14px;cursor:pointer}
+  .app-tab:hover{background:var(--accent-soft)}
+  .app-tab[aria-selected="true"]{background:var(--accent);color:#fff}
+  .app-tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .tab-panel[hidden]{display:none}
+  .tab-panel[aria-busy="true"]::before,.tab-panel[data-error]::before{display:block;max-width:1180px;margin:18px auto 0;
+    padding:0 20px;color:var(--muted);font-size:13px}
+  .tab-panel[aria-busy="true"]::before{content:"Loading data\2026"}
+  .tab-panel[data-error]::before{content:attr(data-error)}
+  header.top{top:52px}   /* sit the filter bar below the app bar */
+
+  /* ===== crash tab: road-user seg, map, misc ===== */
+  .kpi .k-big{font-size:22px;font-weight:700;letter-spacing:-.01em}
+  .map-wrap{position:relative}
+  #crashMap{display:block;width:100%;height:auto;background:transparent;border-radius:10px;
+    overflow:hidden;cursor:grab;touch-action:none}
+  #crashMap.grabbing{cursor:grabbing}
+  .map-ctrls{position:absolute;top:10px;right:10px;display:flex;gap:6px;z-index:2}
+  .map-ctrls button{font-family:var(--font);font-size:13px;font-weight:600;color:var(--ink);
+    background:color-mix(in srgb,var(--surface) 88%,transparent);border:1px solid var(--border);
+    border-radius:7px;width:30px;height:30px;cursor:pointer;line-height:1;backdrop-filter:blur(4px)}
+  .map-ctrls button:hover{background:var(--accent-soft)}
+  .map-ctrls .reset{width:auto;padding:0 10px;font-size:12px}
+  .map-hint{font-size:11.5px;color:var(--muted);margin-top:6px}
+  .map-legend{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:12px;color:var(--ink2);flex-wrap:wrap}
+  .map-ramp{display:inline-flex;align-items:center;gap:5px}
+  .map-ramp i{display:inline-block;border-radius:50%;opacity:.85}
+  .map-note{font-size:12px;color:var(--muted);margin-top:2px}
+  .barrow{display:flex;align-items:center;gap:8px;margin:3px 0;font-size:12.5px}
+  .barrow .lbl{width:150px;flex:none;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barrow .track{flex:1;background:var(--grid);border-radius:4px;height:15px;position:relative;overflow:hidden}
+  .barrow .fill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:4px}
+  .barrow .val{width:64px;flex:none;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .barrow.peak .fill{background:var(--accent)}
+  .peakcard{background:linear-gradient(135deg,var(--accent),#1b5bb0);color:#fff;border:none}
+  .peakcard .k-label,.peakcard .k-delta{color:rgba(255,255,255,.85)}
+  .peakcard .k-val,.peakcard .k-big{color:#fff}
+  .sec-h{grid-column:1/-1;margin:14px 2px 0;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    font-weight:700;color:var(--accent)}
+  .sec-h small{display:block;text-transform:none;letter-spacing:0;font-weight:500;color:var(--muted);
+    font-size:12px;margin-top:3px}
+  .barrow .val.pct{width:96px}
+  .seg.wrapseg{flex-wrap:wrap;max-width:560px}
+  .rl-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:1px 6px;margin-left:8px;vertical-align:middle}
+</style>
+
+<header class="app-top">
+  <div class="app-brand"><span class="app-dot" aria-hidden="true"></span>ICBC BC Road Data Explorer</div>
+  <nav class="app-tabs" role="tablist" aria-label="Datasets">
+    <button class="app-tab" data-tab="vehicles" role="tab" aria-selected="true">Vehicle fleet</button>
+    <button class="app-tab" data-tab="crashes" role="tab" aria-selected="false">Crashes</button>
+    <button class="app-tab" data-tab="police" role="tab" aria-selected="false">Police crashes</button>
+    <button class="app-tab" data-tab="licensing" role="tab" aria-selected="false">Licensing</button>
+  </nav>
+</header>
+
+<section class="tab-panel" id="panel-vehicles" role="tabpanel">
+<header class="top">
+  <div class="head-inner">
+    <div>
+      <div class="eyebrow">ICBC vehicle population &middot; 2021&ndash;2025</div>
+      <h1>BC Vehicle Fleet Explorer</h1>
+      <div class="sub">How many vehicles are registered in a place, and how big and heavy they are, by year. Select one or more communities (or regional districts) and a vehicle type; every panel updates.</div>
+    </div>
+    <div class="controls">
+      <div class="ctl">
+        <label>Geography</label>
+        <div class="seg" role="group" aria-label="Geography level">
+          <button data-lvl="community" aria-pressed="true">Community</button>
+          <button data-lvl="district" aria-pressed="false">Regional district</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label for="muniInput" id="geoLabel">Community</label>
+        <div class="combo" id="combo">
+          <button type="button" class="combo-btn" id="comboBtn" aria-haspopup="listbox" aria-expanded="false">
+            <span class="mag" aria-hidden="true">&#9906;</span>
+            <span class="combo-summary" id="comboSummary">British Columbia (all communities)</span>
+            <span class="caret" aria-hidden="true">&#9662;</span>
+          </button>
+          <div class="combo-panel" id="comboPanel" hidden>
+            <input id="muniInput" type="text" aria-controls="muniList" aria-autocomplete="list"
+                   autocomplete="off" spellcheck="false" placeholder="Search a community...">
+            <ul id="muniList" class="combo-list" role="listbox" aria-multiselectable="true" aria-label="Community"></ul>
+            <div class="combo-foot"><span id="selCount"></span><button type="button" id="selClear">Reset to all</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>Vehicle type</label>
+        <div class="seg" role="group" aria-label="Vehicle type">
+          <button data-t="A" aria-pressed="true">All</button>
+          <button data-t="P" aria-pressed="false">Passenger</button>
+          <button data-t="C" aria-pressed="false">Commercial</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="kpis" id="kpis" aria-live="polite"></section>
+
+  <div class="grid">
+    <div class="card"><h2>Fleet size by year</h2><div class="note" id="noteA">Registered vehicles</div><svg id="chartA" viewBox="0 0 520 300" role="img" aria-label="Vehicles by year"></svg></div>
+    <div class="card"><h2>Total fleet length by year</h2><div class="note">Sum of representative vehicle lengths: the linear road space the fleet occupies</div><svg id="chartB" viewBox="0 0 520 300" role="img" aria-label="Total fleet length by year"></svg></div>
+    <div class="card full"><h2>Size-class composition by year</h2><div class="note">Share of the fleet by vehicle size class (darker = larger). Watch the shift toward SUVs &amp; pickups.</div><svg id="chartC" viewBox="0 0 1080 320" role="img" aria-label="Size class composition by year"></svg><div class="legend" id="legendC"></div></div>
+    <div class="card full"><h2>Average net weight by model year</h2><div class="note" id="noteD">Measured curb weight (kg) of vehicles in the latest (2025) fleet, grouped by the year the model was built. Newer vehicles are heavier.</div><svg id="chartD" viewBox="0 0 1080 300" role="img" aria-label="Average net weight by model year band"></svg></div>
+  </div>
+
+  <details class="tablewrap">
+    <summary>Show data table (current selection)</summary>
+    <div class="tscroll"><table id="dtable"></table></div>
+  </details>
+
+  <footer class="foot">
+    <div><span class="hl">Source:</span> ICBC Vehicle Population open data (public.tableau.com/profile/icbc), full row-level extracts for passenger &amp; commercial vehicles, 2021&ndash;2025. Counts are vehicles with an active policy as of Dec 31 each year, by the owner's mailing-address community.</div>
+    <div style="margin-top:6px"><span class="hl">Regional districts:</span> communities are rolled up to BC's 27 regional districts (MVRD, CRD, FVRD, CVRD, etc.) by municipality and named locality; about 98.5% of vehicles map to a district. The small remainder (unresolved &ldquo;Unknown&rdquo; postal codes and the RD-less Stikine Region) is grouped as &ldquo;Unassigned / other localities.&rdquo; Search the box by name or abbreviation.</div>
+    <div style="margin-top:6px"><span class="hl">Size &amp; length:</span> each of ~11,000 models is assigned to a size class (from make, body style and model name) with a representative length; &ldquo;fleet length&rdquo; sums those. <span class="hl">Net weight</span> is a measured field in the ICBC data. Length reflects the fleet&rsquo;s <em>mix</em>; weight also captures growth within a class. Read model-year trends knowing older vehicles still on the road skew toward trucks/vans (survivorship).</div>
+    <div class="lic" style="margin-top:6px">Contains information licensed under <a href="https://www.icbc.com/policies/open-data-licence" target="_blank" rel="noopener">ICBC's Open Data Licence</a>. This is an independent analysis, not produced or endorsed by ICBC; the figures and interpretations here are ours, not ICBC.</div>
+  </footer>
+</div>
+</section>
+
+<section class="tab-panel" id="panel-crashes" role="tabpanel" hidden>
+<header class="top">
+  <div class="head-inner">
+    <div>
+      <div class="eyebrow">ICBC reported crashes &middot; 2021&ndash;2025</div>
+      <h1>Where &amp; when crashes happen</h1>
+      <div class="sub">Crashes and casualties by location, road user, street, configuration and time. Pick a geography, a measure and a road-user filter; the map and every panel update.</div>
+    </div>
+    <div class="controls">
+      <div class="ctl">
+        <label>Geography</label>
+        <div class="seg" role="group" aria-label="Geography level">
+          <button data-clvl="community" aria-pressed="true">Community</button>
+          <button data-clvl="district" aria-pressed="false">Regional district</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label for="c_muniInput" id="c_geoLabel">Community</label>
+        <div class="combo" id="c_combo">
+          <button type="button" class="combo-btn" id="c_comboBtn" aria-haspopup="listbox" aria-expanded="false">
+            <span class="mag" aria-hidden="true">&#9906;</span>
+            <span class="combo-summary" id="c_comboSummary">British Columbia (all communities)</span>
+            <span class="caret" aria-hidden="true">&#9662;</span>
+          </button>
+          <div class="combo-panel" id="c_comboPanel" hidden>
+            <input id="c_muniInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search a community...">
+            <ul id="c_muniList" class="combo-list" role="listbox" aria-multiselectable="true" aria-label="Community"></ul>
+            <div class="combo-foot"><span id="c_selCount"></span><button type="button" id="c_selClear">Reset to all</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>Measure</label>
+        <div class="seg" role="group" aria-label="Measure">
+          <button data-meas="c" aria-pressed="true">Crashes</button>
+          <button data-meas="v" aria-pressed="false">Victims</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>Road user</label>
+        <div class="seg" role="group" aria-label="Road user">
+          <button data-ru="0" aria-pressed="true">All</button>
+          <button data-ru="1" aria-pressed="false">Pedestrian</button>
+          <button data-ru="2" aria-pressed="false">Cyclist</button>
+          <button data-ru="3" aria-pressed="false">Motorcycle</button>
+          <button data-ru="4" aria-pressed="false">Heavy veh.</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="kpis" id="c_kpis" aria-live="polite"></section>
+  <div class="grid">
+    <div class="card full">
+      <h2 id="c_mapTitle">Where crashes happen</h2>
+      <div class="note" id="c_mapNote">Each bubble is a crash location (an intersection or address block); bigger means more crashes. Nearby locations merge when zoomed out and split apart as you zoom in. Hover a bubble for the intersection name. Scroll to zoom, drag to pan.</div>
+      <div class="map-wrap">
+        <div class="map-ctrls">
+          <button type="button" id="c_zoomIn" title="Zoom in" aria-label="Zoom in">+</button>
+          <button type="button" id="c_zoomOut" title="Zoom out" aria-label="Zoom out">&minus;</button>
+          <button type="button" class="reset" id="c_mapReset" title="Reset to selection">Reset</button>
+        </div>
+        <canvas id="crashMap" width="2000" height="1240" role="img" aria-label="BC crash density map"></canvas>
+      </div>
+      <div class="map-legend">
+        <span id="c_rampLbl">Fewer</span>
+        <span class="map-ramp" id="c_ramp"></span>
+        <span id="c_rampMax">More</span>
+        <span class="map-note" id="c_geocodeNote" style="margin-left:auto"></span>
+      </div>
+    </div>
+    <div class="card"><h2>Top streets</h2><div class="note" id="c_streetsNote">Streets with the most crashes in the selection</div><div id="c_streets"></div></div>
+    <div class="card"><h2>Crash configuration</h2><div class="note">Derived configuration of the collision</div><div id="c_config"></div></div>
+    <div class="card"><h2>By day of week</h2><div class="note" id="c_dayNote"></div><div id="c_day"></div></div>
+    <div class="card"><h2>By month</h2><div class="note" id="c_monthNote"></div><div id="c_month"></div></div>
+    <div class="card"><h2>By time of day</h2><div class="note">3-hour bands. The peak band for your current selection is highlighted.</div><div id="c_time"></div></div>
+    <div class="card"><h2>By year</h2><div class="note">Reported crashes per year, 2021&ndash;2025</div><div id="c_year"></div></div>
+  </div>
+  <footer class="foot">
+    <div><span class="hl">Source:</span> ICBC Reported Crashes open data (public.tableau.com/profile/icbc), 2021&ndash;2025. A crash is one reported incident; victims are persons with any injury or fatality. Road-user filters select crashes <em>involving</em> that user (categories are not mutually exclusive).</div>
+    <div style="margin-top:6px" id="c_footNote"></div>
+    <div style="margin-top:6px">Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> (ODbL); lakes and rivers from <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a>; province outline from public Canada boundary data.</div>
+    <div class="lic" style="margin-top:6px">Contains information licensed under <a href="https://www.icbc.com/policies/open-data-licence" target="_blank" rel="noopener">ICBC's Open Data Licence</a>. This is an independent analysis, not produced or endorsed by ICBC; the figures and interpretations here are ours, not ICBC.</div>
+  </footer>
+</div>
+</section>
+
+<section class="tab-panel" id="panel-police" role="tabpanel" hidden>
+<header class="top">
+  <div class="head-inner">
+    <div>
+      <div class="eyebrow">Police-reported crashes (TAS) &middot; 2020&ndash;2024</div>
+      <h1>How, why &amp; who</h1>
+      <div class="sub">Police-attended crashes: collision types &amp; conditions, contributing factors and the people involved. Filter by region and year; every panel updates.</div>
+    </div>
+    <div class="controls">
+      <div class="ctl">
+        <label>Geography</label>
+        <div class="seg" role="group" aria-label="Geography level">
+          <button data-plvl="region" aria-pressed="true">Region</button>
+          <button data-plvl="community" aria-pressed="false">Community</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label for="p_muniInput" id="p_geoLabel">Region</label>
+        <div class="combo" id="p_combo">
+          <button type="button" class="combo-btn" id="p_comboBtn" aria-haspopup="listbox" aria-expanded="false">
+            <span class="mag" aria-hidden="true">&#9906;</span>
+            <span class="combo-summary" id="p_comboSummary">All BC</span>
+            <span class="caret" aria-hidden="true">&#9662;</span>
+          </button>
+          <div class="combo-panel" id="p_comboPanel" hidden>
+            <input id="p_muniInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search a region...">
+            <ul id="p_muniList" class="combo-list" role="listbox" aria-multiselectable="true" aria-label="Geography"></ul>
+            <div class="combo-foot"><span id="p_selCount"></span><button type="button" id="p_selClear">Reset to all</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>Year</label>
+        <div class="seg" role="group" aria-label="Year">
+          <button data-pyr="All" aria-pressed="true">All</button>
+          <button data-pyr="2020" aria-pressed="false">2020</button>
+          <button data-pyr="2021" aria-pressed="false">2021</button>
+          <button data-pyr="2022" aria-pressed="false">2022</button>
+          <button data-pyr="2023" aria-pressed="false">2023</button>
+          <button data-pyr="2024" aria-pressed="false">2024</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="kpis" id="p_kpis" aria-live="polite"></section>
+  <div class="grid">
+    <div class="sec-h">How crashes happen<small>Crash characteristics and conditions (police-recorded), by number of crashes</small></div>
+    <div class="card"><h2>Collision type</h2><div class="note">What the vehicle first struck</div><div id="p_collision"></div></div>
+    <div class="card"><h2>Crash configuration</h2><div class="note">Movement/geometry of the collision</div><div id="p_config"></div></div>
+    <div class="card"><h2>Weather</h2><div class="note"></div><div id="p_weather"></div></div>
+    <div class="card"><h2>Road surface condition</h2><div class="note"></div><div id="p_road"></div></div>
+    <div class="card full"><h2>Light condition</h2><div class="note"></div><div id="p_light"></div></div>
+
+    <div class="sec-h">Why: contributing factors<small>Left: share of crashes flagged with each factor. Right: most-cited contributing factors across all parties.</small></div>
+    <div class="card"><h2>Crashes involving</h2><div class="note">Share of crashes where the factor was recorded (categories overlap)</div><div id="p_reasons"></div></div>
+    <div class="card"><h2>Top contributing factors <span class="rl-badge">region-level</span></h2><div class="note">Cited across drivers, cyclists &amp; pedestrians (up to 4 per party)</div><div id="p_factors"></div></div>
+
+    <div class="sec-h">Who is involved <span class="rl-badge">region-level</span><small>Parties and victims. These datasets have no community field, so this section stays at region level even when a community is selected (it then shows the community's region).</small></div>
+    <div class="card"><h2>Vehicle type</h2><div class="note">Of vehicles involved</div><div id="p_vehType"></div></div>
+    <div class="card"><h2>Vehicle use</h2><div class="note">Of vehicles involved</div><div id="p_vehUse"></div></div>
+    <div class="card"><h2>Age of parties involved</h2><div class="note">Drivers, cyclists &amp; pedestrians</div><div id="p_eage"></div></div>
+    <div class="card"><h2>Gender of parties involved</h2><div class="note"></div><div id="p_egender"></div></div>
+    <div class="card"><h2>Injury severity of victims</h2><div class="note">Persons with an injury or fatality</div><div id="p_injury"></div></div>
+    <div class="card"><h2>Victim role</h2><div class="note"></div><div id="p_role"></div></div>
+    <div class="card full"><h2>Safety equipment used by victims</h2><div class="note"></div><div id="p_safety"></div></div>
+  </div>
+  <footer class="foot">
+    <div><span class="hl">Source:</span> ICBC Traffic Accident System (TAS): police-reported crashes, open data, 2020&ndash;2024. Four datasets combined (crash, entity and victim level), sharing region &amp; year. A crash is one police-reported incident; a "victim" is a person injured or killed; a "party"/entity is a vehicle, cyclist or pedestrian.</div>
+    <div style="margin-top:6px" id="p_footNote"></div>
+    <div class="lic" style="margin-top:6px">Contains information licensed under <a href="https://www.icbc.com/policies/open-data-licence" target="_blank" rel="noopener">ICBC's Open Data Licence</a>. This is an independent analysis, not produced or endorsed by ICBC; the figures and interpretations here are ours, not ICBC.</div>
+  </footer>
+</div>
+</section>
+
+<section class="tab-panel" id="panel-licensing" role="tabpanel" hidden>
+<header class="top">
+  <div class="head-inner">
+    <div>
+      <div class="eyebrow">Active driver licences &middot; 2022&ndash;2025</div>
+      <h1>Who holds a BC licence</h1>
+      <div class="sub">Active driver licences by class, age, gender, when they were issued and where out-of-province holders came from. Filter by community/region and snapshot year.</div>
+    </div>
+    <div class="controls">
+      <div class="ctl">
+        <label>Geography</label>
+        <div class="seg" role="group" aria-label="Geography level">
+          <button data-llvl="region" aria-pressed="true">Region</button>
+          <button data-llvl="community" aria-pressed="false">Community</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label for="l_muniInput" id="l_geoLabel">Region</label>
+        <div class="combo" id="l_combo">
+          <button type="button" class="combo-btn" id="l_comboBtn" aria-haspopup="listbox" aria-expanded="false">
+            <span class="mag" aria-hidden="true">&#9906;</span>
+            <span class="combo-summary" id="l_comboSummary">All BC</span>
+            <span class="caret" aria-hidden="true">&#9662;</span>
+          </button>
+          <div class="combo-panel" id="l_comboPanel" hidden>
+            <input id="l_muniInput" type="text" autocomplete="off" spellcheck="false" placeholder="Search a region...">
+            <ul id="l_muniList" class="combo-list" role="listbox" aria-multiselectable="true" aria-label="Geography"></ul>
+            <div class="combo-foot"><span id="l_selCount"></span><button type="button" id="l_selClear">Reset to all</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>Snapshot year</label>
+        <div class="seg" role="group" aria-label="Year">
+          <button data-lyr="2022" aria-pressed="false">2022</button>
+          <button data-lyr="2023" aria-pressed="false">2023</button>
+          <button data-lyr="2024" aria-pressed="false">2024</button>
+          <button data-lyr="2025" aria-pressed="true">2025</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="kpis" id="l_kpis" aria-live="polite"></section>
+  <div class="grid">
+    <div class="card full"><h2>Active licences by snapshot year</h2><div class="note">Total active licences at each year-end (selected snapshot highlighted)</div><div id="l_byyear"></div></div>
+    <div class="card"><h2>Licences by class (grouped)</h2><div class="note">Grouped by primary entitlement: full passenger (Class 5), novice/learner (Class 7 &amp; L), commercial (Class 1&ndash;4), motorcycle (Class 6/8). Car+motorcycle (5,6) counts as Passenger.</div><div id="l_class"></div></div>
+    <div class="card"><h2>Gender</h2><div class="note"></div><div id="l_gender"></div></div>
+    <div class="card"><h2>Driver age</h2><div class="note"></div><div id="l_age"></div></div>
+    <div class="card"><h2>Out-of-province origin</h2><div class="note">Where transferred-in holders were previously licensed (excludes BC-native)</div><div id="l_juris"></div></div>
+  </div>
+  <footer class="foot">
+    <div><span class="hl">Source:</span> ICBC active driver licences &amp; exams, open data, 2022&ndash;2025 snapshots (the 2021 snapshot uses a different, partial format and is excluded). Each row is one active licence as of the snapshot year; exams count road (R), knowledge (K) and motorcycle (M) tests.</div>
+    <div style="margin-top:6px" id="l_footNote"></div>
+    <div class="lic" style="margin-top:6px">Contains information licensed under <a href="https://www.icbc.com/policies/open-data-licence" target="_blank" rel="noopener">ICBC's Open Data Licence</a>. This is an independent analysis, not produced or endorsed by ICBC; the figures and interpretations here are ours, not ICBC.</div>
+  </footer>
+</div>
+</section>
+
+<div class="tt" id="tt" role="status" aria-hidden="true"></div>
+
+<script>
+/* ===== data loading =====
+   Single-file build (default): build_app.py inlines every dataset into DATASETS below.
+   Split build (build_app.py --split): the inline values are null and each dataset is
+   fetched from data/<file> the first time a tab needs it, so visitors only download
+   the tabs they open and the browser caches the data separately from the page. */
+const DATASETS={
+  vehicles:  {inline:__DASHBOARD_DATA__, file:"dashboard_data.json"},
+  crash:     {inline:__CRASH_DATA__, file:"crash_data.json"},
+  outline:   {inline:__BC_OUTLINE__, file:"bc_outline.json"},
+  police:    {inline:__POLICE_DATA__, file:"police_data.json"},
+  licensing: {inline:__LICENSING_DATA__, file:"licensing_data.json"},
+  basemap:   {gz:"__BASEMAP__", file:"basemap.json"},       // gz: gzip+base64 when inlined
+  crashLocs: {gz:"__CRASH_LOCS__", file:"crash_locs.json"},
+};
+const _dataCache={};
+async function inflateB64(b64){
+  const bin=atob(b64), u8=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+  return JSON.parse(await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream("gzip"))).text()); }
+function loadData(name){
+  if(_dataCache[name]) return _dataCache[name];
+  const d=DATASETS[name];
+  const p= d.inline!=null ? Promise.resolve(d.inline)
+    : d.gz ? inflateB64(d.gz)
+    : fetch("data/"+d.file).then(r=>{ if(!r.ok) throw new Error(`data/${d.file}: HTTP ${r.status}`); return r.json(); });
+  return (_dataCache[name]=p); }
+// each tab script registers a boot function; it runs once, the first time the tab is shown
+window.TabBoot={};
+const TAB_DATA={vehicles:["vehicles"], crashes:["crash","outline"], police:["police"], licensing:["licensing"]};
+const _booted={};
+function bootTab(name){
+  if(_booted[name]) return _booted[name];
+  const panel=document.getElementById("panel-"+name);
+  panel.setAttribute("aria-busy","true");
+  return (_booted[name]=Promise.all(TAB_DATA[name].map(loadData))
+    .then(args=>{ window.TabBoot[name](...args); })
+    .catch(e=>{ console.error(e); panel.dataset.error="Could not load this tab's data. Check your connection and reload the page."; })
+    .finally(()=>panel.removeAttribute("aria-busy"))); }
+</script>
+
+<script>
+window.TabBoot.vehicles=function(DATA){  /* ===== VEHICLE TAB ===== */
+const YEARS = DATA.years, SEGS = DATA.segments, BANDS = DATA.bands;
+const SEGVARS = ["--s1","--s2","--s3","--s4","--s5","--s6","--s7","--s8","--sOther"];
+const DISTRICTS = new Set(DATA.district);
+const ALLBC = "British Columbia (all communities)";
+let state = {level: "community", type: "A",
+  sel: {community: [ALLBC], district: [ALLBC]}};
+const currentList = ()=> state.level==="district" ? DATA.district : DATA.community;
+const curSel = ()=> state.sel[state.level];
+
+/* ---------- data access ---------- */
+function combine(names){
+  // sum the selected geographies' nodes for the current vehicle-type selection
+  const blankSeg = ()=>YEARS.map(()=>SEGS.map(()=>0));
+  const blankBand = ()=>YEARS.map(()=>BANDS.map(()=>0));
+  const acc = {veh:YEARS.map(()=>0), len:YEARS.map(()=>0), wt:YEARS.map(()=>0),
+    seg:blankSeg(), bandveh:blankBand(), bandwt:blankBand()};
+  const parts = state.type==="A" ? ["P","C"] : [state.type];
+  for(const name of names){
+    const node = DATA.d[name]; if(!node) continue;
+    for(const p of parts){
+      const s = node[p]; if(!s) continue;
+      for(let y=0;y<YEARS.length;y++){
+        acc.veh[y]+=s.veh[y]; acc.len[y]+=s.len[y]; acc.wt[y]+=s.wt[y];
+        for(let i=0;i<SEGS.length;i++) acc.seg[y][i]+=s.seg[y][i];
+        for(let b=0;b<BANDS.length;b++){ acc.bandveh[y][b]+=s.bandveh[y][b]; acc.bandwt[y][b]+=s.bandwt[y][b]; }
+      }
+    }
+  }
+  return acc;
+}
+const fmt = (n)=> n>=1e6 ? (n/1e6).toFixed(2)+"M" : n>=1e3 ? (n/1e3).toFixed(n>=1e4?0:1)+"k" : Math.round(n).toLocaleString();
+const fmtFull = (n)=> Math.round(n).toLocaleString();
+
+/* ---------- tooltip ---------- */
+const tt = document.getElementById("tt");
+function showTT(html, ev){ tt.innerHTML=html; tt.style.opacity="1";
+  let x=ev.clientX+14, y=ev.clientY+14;
+  const w=tt.offsetWidth, h=tt.offsetHeight;
+  if(x+w>innerWidth-8) x=ev.clientX-w-14; if(y+h>innerHeight-8) y=ev.clientY-h-14;
+  tt.style.left=x+"px"; tt.style.top=y+"px"; }
+function hideTT(){ tt.style.opacity="0"; }
+
+/* ---------- KPI ---------- */
+function kpis(d){
+  const el=document.getElementById("kpis");
+  const veh0=d.veh[0], veh1=d.veh[4];
+  const avgL=(y)=> d.veh[y]? d.len[y]/d.veh[y] : 0;
+  const avgW=(y)=> d.veh[y]? d.wt[y]/d.veh[y] : 0;
+  const fleetKm=(y)=> d.len[y]/1000;
+  const pct=(a,b)=> b? ((a-b)/b*100):0;
+  const arrow=(v)=> v>0.05?"&#9650;":v<-0.05?"&#9660;":"&#9644;";
+  const items=[
+    {l:"Vehicles (2025)", v:fmtFull(veh1), u:"", d:pct(veh1,veh0), dsuf:"% vs 2021"},
+    {l:"Avg length (2025)", v:avgL(4).toFixed(2), u:" m", d:avgL(4)-avgL(0), dfix:2, dsuf:" m vs 2021"},
+    {l:"Avg net weight (2025)", v:fmtFull(avgW(4)), u:" kg", d:avgW(4)-avgW(0), dfix:0, dsuf:" kg vs 2021"},
+    {l:"Total fleet length (2025)", v:fmtFull(fleetKm(4)), u:" km", d:pct(fleetKm(4),fleetKm(0)), dsuf:"% vs 2021"},
+  ];
+  el.innerHTML=items.map(it=>{
+    const dv = it.dfix!=null ? (it.d>=0?"+":"")+it.d.toFixed(it.dfix) : (it.d>=0?"+":"")+it.d.toFixed(1);
+    return `<div class="kpi"><div class="k-label">${it.l}</div>
+      <div class="k-val">${it.v}<span class="k-unit">${it.u}</span></div>
+      <div class="k-delta"><span class="arrow">${arrow(it.d)}</span> ${dv}${it.dsuf}</div></div>`;
+  }).join("");
+}
+
+/* ---------- helpers for svg ---------- */
+function niceMax(v){ if(v<=0) return 1; const p=Math.pow(10,Math.floor(Math.log10(v)));
+  const n=v/p; const s=n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10; return s*p; }
+function svgEl(id){ const s=document.getElementById(id); s.innerHTML=""; return s; }
+const NS="http://www.w3.org/2000/svg";
+function mk(t,a){ const e=document.createElementNS(NS,t); for(const k in a) e.setAttribute(k,a[k]); return e; }
+
+/* ---------- Chart A: vehicles by year (bars) ---------- */
+function chartA(d){
+  const s=svgEl("chartA"), W=520,H=300, m={t:24,r:16,b:38,l:58};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const max=niceMax(Math.max(...d.veh,1));
+  for(let g=0;g<=4;g++){ const yv=max*g/4, y=m.t+ih-ih*g/4;
+    s.appendChild(mk("line",{class:"gridline",x1:m.l,x2:m.l+iw,y1:y,y2:y}));
+    const tx=mk("text",{class:"axis",x:m.l-8,y:y+4,"text-anchor":"end"}); tx.textContent=fmt(yv); s.appendChild(addAxis(tx)); }
+  const bw=iw/YEARS.length, bar=Math.min(46,bw*0.56);
+  YEARS.forEach((yr,i)=>{
+    const x=m.l+bw*i+(bw-bar)/2, h=ih*d.veh[i]/max, y=m.t+ih-h;
+    const r=mk("rect",{x, y, width:bar, height:Math.max(h,0.5), rx:4, style:"fill:var(--accent)"});
+    r.addEventListener("mousemove",e=>showTT(`<b>${yr}</b><div class="r"><span>Vehicles</span><b>${fmtFull(d.veh[i])}</b></div>`,e));
+    r.addEventListener("mouseleave",hideTT); s.appendChild(r);
+    const t=mk("text",{class:"val-lbl",x:x+bar/2,y:y-6,"text-anchor":"middle"}); t.textContent=fmt(d.veh[i]); s.appendChild(t);
+    const xl=mk("text",{class:"axis",x:x+bar/2,y:m.t+ih+18,"text-anchor":"middle"}); xl.textContent=yr; s.appendChild(xl);
+  });
+  s.appendChild(mk("line",{class:"baseline",x1:m.l,x2:m.l+iw,y1:m.t+ih,y2:m.t+ih}));
+}
+function addAxis(t){ t.setAttribute("class","axis"); return t; }
+
+/* ---------- Chart B: total fleet length km (area+line) ---------- */
+function chartB(d){
+  const s=svgEl("chartB"), W=520,H=300, m={t:24,r:20,b:38,l:64};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const km=d.len.map(v=>v/1000);
+  const mn=Math.min(...km), mx=Math.max(...km);
+  const lo=Math.max(0, mn-(mx-mn)*0.35), hi=mx+(mx-mn)*0.2||mx*1.1+1;
+  const X=i=>m.l+iw*i/(YEARS.length-1), Y=v=>m.t+ih-ih*(v-lo)/(hi-lo||1);
+  for(let g=0;g<=4;g++){ const yv=lo+(hi-lo)*g/4, y=m.t+ih-ih*g/4;
+    s.appendChild(mk("line",{class:"gridline",x1:m.l,x2:m.l+iw,y1:y,y2:y}));
+    const tx=mk("text",{class:"axis",x:m.l-8,y:y+4,"text-anchor":"end"}); tx.textContent=fmtFull(yv); s.appendChild(tx); }
+  let dpath=`M ${X(0)} ${Y(km[0])}`, area=`M ${X(0)} ${m.t+ih} L ${X(0)} ${Y(km[0])}`;
+  for(let i=1;i<km.length;i++){ dpath+=` L ${X(i)} ${Y(km[i])}`; area+=` L ${X(i)} ${Y(km[i])}`; }
+  area+=` L ${X(km.length-1)} ${m.t+ih} Z`;
+  s.appendChild(mk("path",{d:area, style:"fill:var(--accent-soft)"}));
+  s.appendChild(mk("path",{d:dpath, style:"fill:none;stroke:var(--accent);stroke-width:2.4;stroke-linejoin:round;stroke-linecap:round"}));
+  YEARS.forEach((yr,i)=>{
+    const last=i===YEARS.length-1;
+    const c=mk("circle",{cx:X(i),cy:Y(km[i]),r:last?5:4,style:`fill:var(${last?"--accent":"--surface"});stroke:var(--accent);stroke-width:2`});
+    c.addEventListener("mousemove",e=>showTT(`<b>${yr}</b><div class="r"><span>Fleet length</span><b>${fmtFull(km[i])} km</b></div>`,e));
+    c.addEventListener("mouseleave",hideTT); s.appendChild(c);
+    const xl=mk("text",{class:"axis",x:X(i),y:m.t+ih+18,"text-anchor":"middle"}); xl.textContent=yr; s.appendChild(xl);
+  });
+  const t=mk("text",{class:"val-lbl",x:X(km.length-1),y:Y(km[km.length-1])-10,"text-anchor":"end"}); t.textContent=fmtFull(km[km.length-1])+" km"; s.appendChild(t);
+  s.appendChild(mk("line",{class:"baseline",x1:m.l,x2:m.l+iw,y1:m.t+ih,y2:m.t+ih}));
+}
+
+/* ---------- Chart C: 100% stacked composition by year ---------- */
+function chartC(d){
+  const s=svgEl("chartC"), W=1080,H=320, m={t:16,r:16,b:40,l:44};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b;
+  for(let g=0;g<=4;g++){ const y=m.t+ih-ih*g/4;
+    s.appendChild(mk("line",{class:"gridline",x1:m.l,x2:m.l+iw,y1:y,y2:y}));
+    const tx=mk("text",{class:"axis",x:m.l-8,y:y+4,"text-anchor":"end"}); tx.textContent=(g*25)+"%"; s.appendChild(tx); }
+  const bw=iw/YEARS.length, bar=Math.min(120,bw*0.6);
+  YEARS.forEach((yr,i)=>{
+    const tot=d.seg[i].reduce((a,b)=>a+b,0)||1;
+    const x=m.l+bw*i+(bw-bar)/2; let yTop=m.t;
+    for(let sIdx=0;sIdx<SEGS.length;sIdx++){
+      const val=d.seg[i][sIdx]; if(val<=0) continue;
+      const h=ih*val/tot;
+      const r=mk("rect",{x, y:yTop, width:bar, height:Math.max(h-2,0.5), rx:2, style:`fill:var(${SEGVARS[sIdx]})`});
+      const share=(val/tot*100);
+      r.addEventListener("mousemove",e=>showTT(`<b>${yr} &middot; ${SEGS[sIdx]}</b><div class="r"><span>Vehicles</span><b>${fmtFull(val)}</b></div><div class="r"><span>Share</span><b>${share.toFixed(1)}%</b></div>`,e));
+      r.addEventListener("mouseleave",hideTT); s.appendChild(r);
+      if(h>22){ const t=mk("text",{x:x+bar/2,y:yTop+h/2+4,"text-anchor":"middle",style:"font-size:11px;font-weight:600;fill:#fff;font-variant-numeric:tabular-nums"}); t.textContent=share>=6?share.toFixed(0)+"%":""; s.appendChild(t); }
+      yTop+=h;
+    }
+    const xl=mk("text",{class:"axis",x:x+bar/2,y:m.t+ih+20,"text-anchor":"middle",style:"font-size:12px"}); xl.textContent=yr; s.appendChild(xl);
+  });
+  // legend
+  const lg=document.getElementById("legendC");
+  lg.innerHTML=SEGS.map((sg,i)=>`<span><i style="background:var(${SEGVARS[i]})"></i>${sg}</span>`).join("");
+}
+
+/* ---------- Chart D: avg net weight by model-year band (2025) ---------- */
+function chartD(d){
+  const s=svgEl("chartD"), W=1080,H=300, m={t:16,r:60,b:34,l:110};
+  const iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const yi=4; // 2025 fleet
+  const avg=BANDS.map((_,b)=> d.bandveh[yi][b]? d.bandwt[yi][b]/d.bandveh[yi][b] : 0);
+  const cnt=BANDS.map((_,b)=> d.bandveh[yi][b]);
+  const max=niceMax(Math.max(...avg,1));
+  const bh=ih/BANDS.length, bar=Math.min(30,bh*0.62);
+  for(let g=0;g<=4;g++){ const xv=max*g/4, x=m.l+iw*g/4;
+    s.appendChild(mk("line",{class:"gridline",x1:x,x2:x,y1:m.t,y2:m.t+ih}));
+    const tx=mk("text",{class:"axis",x,y:m.t+ih+18,"text-anchor":"middle"}); tx.textContent=fmt(xv); s.appendChild(tx); }
+  const xt=mk("text",{class:"axis-title",x:m.l+iw/2,y:m.t+ih+32,"text-anchor":"middle"}); xt.textContent="Average net weight (kg)"; s.appendChild(xt);
+  BANDS.forEach((bd,b)=>{
+    const y=m.t+bh*b+(bh-bar)/2, w=iw*avg[b]/max;
+    // shade by size: reuse ordinal ramp by index position
+    const r=mk("rect",{x:m.l,y,width:Math.max(w,0.5),height:bar,rx:4,style:"fill:var(--accent)"});
+    r.addEventListener("mousemove",e=>showTT(`<b>Model year ${bd}</b><div class="r"><span>Avg net weight</span><b>${fmtFull(avg[b])} kg</b></div><div class="r"><span>Vehicles (2025)</span><b>${fmtFull(cnt[b])}</b></div>`,e));
+    r.addEventListener("mouseleave",hideTT); s.appendChild(r);
+    const lbl=mk("text",{class:"axis",x:m.l-10,y:y+bar/2+4,"text-anchor":"end",style:"font-size:12px;fill:var(--ink2)"}); lbl.textContent=bd; s.appendChild(lbl);
+    if(avg[b]>0){ const t=mk("text",{class:"val-lbl",x:m.l+w+7,y:y+bar/2+4}); t.textContent=fmtFull(avg[b]); s.appendChild(t); }
+  });
+}
+
+/* ---------- data table ---------- */
+function table(d){
+  const t=document.getElementById("dtable");
+  const avgL=y=>d.veh[y]?(d.len[y]/d.veh[y]):0, avgW=y=>d.veh[y]?(d.wt[y]/d.veh[y]):0;
+  let h="<thead><tr><th>Metric</th>"+YEARS.map(y=>`<th>${y}</th>`).join("")+"</tr></thead><tbody>";
+  const row=(lbl,fn)=>{ h+=`<tr><td>${lbl}</td>`+YEARS.map((_,i)=>`<td>${fn(i)}</td>`).join("")+"</tr>"; };
+  row("Vehicles",i=>fmtFull(d.veh[i]));
+  row("Avg length (m)",i=>avgL(i).toFixed(3));
+  row("Avg net weight (kg)",i=>fmtFull(avgW(i)));
+  row("Total fleet length (km)",i=>fmtFull(d.len[i]/1000));
+  h+="</tbody>"; t.innerHTML=h;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const d=combine(curSel());
+  kpis(d); chartA(d); chartB(d); chartC(d); chartD(d); table(d);
+}
+
+/* ---------- multi-select geography combobox ---------- */
+function esc(s){ return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function isDistrict(m){ return m!==ALLBC && DISTRICTS.has(m); }
+function secondary(m){ const r=DATA.region[m]; return (!r||r==="All BC"||r==="Unknown")?"":r; }
+function dispName(m){ if(m===ALLBC||isDistrict(m)) return m; const r=secondary(m); return r?`${m} (${r})`:m; }
+function summaryText(){
+  const sel=curSel();
+  if(sel.length===1 && sel[0]===ALLBC) return ALLBC;
+  if(sel.length===1) return dispName(sel[0]);
+  return `${sel.length} ${state.level==="district"?"regional districts":"communities"} selected`;
+}
+function updateSummary(){ document.getElementById("comboSummary").textContent=summaryText(); }
+
+function setupCombo(){
+  const btn=document.getElementById("comboBtn");
+  const panel=document.getElementById("comboPanel");
+  const input=document.getElementById("muniInput");
+  const list=document.getElementById("muniList");
+  const clearBtn=document.getElementById("selClear");
+  let matches=[], active=-1, lastQ="";
+  const open=()=>{ panel.hidden=false; btn.setAttribute("aria-expanded","true"); input.value=""; filter(""); setTimeout(()=>input.focus(),0); };
+  const close=()=>{ panel.hidden=true; btn.setAttribute("aria-expanded","false"); active=-1; };
+  function hl(text,q){ if(!q) return esc(text); const i=text.toLowerCase().indexOf(q);
+    return i<0?esc(text):esc(text.slice(0,i))+"<mark>"+esc(text.slice(i,i+q.length))+"</mark>"+esc(text.slice(i+q.length)); }
+  function updateFoot(){ const sel=curSel(); const isAll=sel.length===1&&sel[0]===ALLBC;
+    document.getElementById("selCount").textContent = isAll?"Showing all":`${sel.length} selected`; }
+  function filter(raw){
+    const q=(raw||"").trim().toLowerCase(); lastQ=q;
+    matches=currentList().filter(m=> !q || m.toLowerCase().includes(q)
+      || (DATA.region[m]||"").toLowerCase().includes(q)
+      || ((DATA.alias||{})[m]||"").toLowerCase().includes(q)).slice(0,400);
+    active=-1; paint(q);
+  }
+  function paint(q){
+    const noun=state.level==="district"?"regional district":"community";
+    if(!matches.length){ list.innerHTML=`<li class="combo-empty" role="presentation">No ${noun} matches</li>`; return; }
+    const sel=new Set(curSel());
+    list.innerHTML=matches.map((m,i)=>{
+      const r=secondary(m); const reg=r?`<span class="reg">${esc(r)}</span>`:"";
+      const on=sel.has(m);
+      return `<li role="option" data-m="${esc(m)}" aria-selected="${on}" class="${i===active?'active':''}"><span class="cb">${on?'&#10003;':''}</span><span class="nm">${hl(m,q)}</span>${reg}</li>`;
+    }).join("");
+  }
+  function toggle(name){
+    let sel=curSel().slice();
+    if(name===ALLBC){ sel=[ALLBC]; }
+    else {
+      sel=sel.filter(x=>x!==ALLBC);
+      const i=sel.indexOf(name);
+      if(i>=0) sel.splice(i,1); else sel.push(name);
+      if(!sel.length) sel=[ALLBC];
+    }
+    state.sel[state.level]=sel;
+    paint(lastQ); updateFoot(); updateSummary(); render();
+  }
+  function scrollActive(){ const el=list.children[active]; if(el&&el.scrollIntoView) el.scrollIntoView({block:"nearest"}); }
+  btn.addEventListener("click",()=>{ panel.hidden?open():close(); });
+  input.addEventListener("input",()=>filter(input.value));
+  input.addEventListener("keydown",(e)=>{
+    if(e.key==="ArrowDown"){ active=Math.min(active+1,matches.length-1); paint(lastQ); scrollActive(); e.preventDefault(); }
+    else if(e.key==="ArrowUp"){ active=Math.max(active-1,0); paint(lastQ); scrollActive(); e.preventDefault(); }
+    else if(e.key==="Enter"){ const pick=active>=0?matches[active]:matches[0]; if(pick){ toggle(pick); e.preventDefault(); } }
+    else if(e.key==="Escape"){ close(); btn.focus(); }
+  });
+  list.addEventListener("mousedown",(e)=>{ const li=e.target.closest("li[data-m]"); if(li){ toggle(li.dataset.m); e.preventDefault(); } });
+  clearBtn.addEventListener("click",()=>{ state.sel[state.level]=[ALLBC]; paint(lastQ); updateFoot(); updateSummary(); render(); });
+  document.addEventListener("mousedown",(e)=>{ if(!document.getElementById("combo").contains(e.target)) close(); });
+  setupCombo._refresh=()=>{ updateSummary(); updateFoot(); input.placeholder=state.level==="district"?"Search a regional district...":"Search a community..."; if(!panel.hidden){ input.value=""; filter(""); } };
+  updateSummary(); updateFoot();
+}
+
+/* ---------- init ---------- */
+(function(){
+  setupCombo();
+  document.querySelectorAll('.seg button[data-lvl]').forEach(b=>{
+    b.addEventListener("click",()=>{
+      if(state.level===b.dataset.lvl) return;
+      state.level=b.dataset.lvl;
+      document.querySelectorAll('.seg button[data-lvl]').forEach(x=>x.setAttribute("aria-pressed", x===b?"true":"false"));
+      document.getElementById("geoLabel").textContent = state.level==="district"?"Regional district":"Community";
+      setupCombo._refresh();
+      render();
+    });
+  });
+  document.querySelectorAll(".seg button[data-t]").forEach(b=>{
+    b.addEventListener("click",()=>{
+      state.type=b.dataset.t;
+      document.querySelectorAll(".seg button[data-t]").forEach(x=>x.setAttribute("aria-pressed", x===b?"true":"false"));
+      document.getElementById("noteA").textContent = "Registered "+(state.type==="A"?"":state.type==="P"?"passenger ":"commercial ")+"vehicles";
+      render();
+    });
+  });
+  render();
+  // re-render on theme toggle so CSS-var colors in JS-set fills refresh (they are var() refs, so just repaint)
+  const mo=new MutationObserver(()=>render());
+  mo.observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+})();
+};  /* ===== end VEHICLE TAB ===== */
+</script>
+
+<script>
+window.TabBoot.crashes=function(CRASH, OUTLINE){  /* ===== CRASH TAB ===== */
+const SLICES=CRASH.slices, CONFIGS=CRASH.configs, DAYS=CRASH.days, MONTHS=CRASH.months, TIMES=CRASH.times, YEARS_C=CRASH.years;
+const ALLBC="British Columbia (all communities)";
+const DISTRICTS=new Set(CRASH.district);
+const MUNI_IDX={}; CRASH.muniList.forEach((m,i)=>MUNI_IDX[m]=i);
+let cs={level:"community", meas:"c", ru:0, sel:{community:[ALLBC], district:[ALLBC]}};
+const clist=()=> cs.level==="district"?CRASH.district:CRASH.community;
+const csel=()=> cs.sel[cs.level];
+
+const tt=document.getElementById("tt");
+function showTT(html,ev){ tt.innerHTML=html; tt.style.opacity="1";
+  let x=ev.clientX+14,y=ev.clientY+14; const w=tt.offsetWidth,h=tt.offsetHeight;
+  if(x+w>innerWidth-8)x=ev.clientX-w-14; if(y+h>innerHeight-8)y=ev.clientY-h-14;
+  tt.style.left=x+"px"; tt.style.top=y+"px"; }
+function hideTT(){ tt.style.opacity="0"; }
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+const fmt=n=> n>=1e6?(n/1e6).toFixed(2)+"M":n>=1e3?(n/1e3).toFixed(n>=1e4?0:1)+"k":Math.round(n).toLocaleString();
+const fmtFull=n=> Math.round(n).toLocaleString();
+const argmax=a=>{let mi=0;for(let i=1;i<a.length;i++)if(a[i]>a[mi])mi=i;return mi;};
+const NS="http://www.w3.org/2000/svg";
+function mk(t,a){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+function isDark(){ const t=document.documentElement.getAttribute("data-theme"); return t?t==="dark":matchMedia("(prefers-color-scheme:dark)").matches; }
+const RAMP_L=["#dce9fb","#a8c9f6","#6da7ec","#3987e5","#1c5cab","#0d366b"];
+const RAMP_D=["#26456f","#2f6bb0","#3f92e6","#6da7ec","#a8c9f6","#e2eefc"];
+
+/* ---------- aggregation (measure-aware) ---------- */
+function combine(names){
+  const nC=CONFIGS.length;
+  const nY=YEARS_C.length;
+  const a={c:0,v:0,cfg:Array(nC).fill(0),cfgv:Array(nC).fill(0),day:Array(7).fill(0),dayv:Array(7).fill(0),
+    mon:Array(12).fill(0),monv:Array(12).fill(0),time:Array(8).fill(0),timev:Array(8).fill(0),
+    yr:Array(nY).fill(0),yrv:Array(nY).fill(0),st:{}};
+  for(const nm of names){
+    const node=CRASH.agg[nm]; if(!node) continue; const s=node[cs.ru]; if(!s) continue;
+    a.c+=s.c; a.v+=s.v;
+    for(let i=0;i<nC;i++){a.cfg[i]+=s.cfg[i];a.cfgv[i]+=s.cfgv[i];}
+    for(let i=0;i<7;i++){a.day[i]+=s.day[i];a.dayv[i]+=s.dayv[i];}
+    for(let i=0;i<12;i++){a.mon[i]+=s.mon[i];a.monv[i]+=s.monv[i];}
+    for(let i=0;i<8;i++){a.time[i]+=s.time[i];a.timev[i]+=s.timev[i];}
+    for(let i=0;i<nY;i++){a.yr[i]+=s.yr[i];a.yrv[i]+=s.yrv[i];}
+    for(const t of s.st){ const e=a.st[t[0]]||(a.st[t[0]]=[0,0]); e[0]+=t[1]; e[1]+=t[2]; }
+  }
+  return a;
+}
+const isV=()=> cs.meas==="v";
+const measWord=()=> isV()?"victims":"crashes";
+
+/* ---------- combobox (multi-select, mirrors vehicle tab) ---------- */
+function isDistrict(m){ return m!==ALLBC && DISTRICTS.has(m); }
+function secondary(m){ const r=CRASH.region[m]; return (!r||r==="All BC"||r==="Unknown")?"":r; }
+function dispName(m){ if(m===ALLBC||isDistrict(m)) return m; const r=secondary(m); return r?`${m} (${r})`:m; }
+function summaryText(){ const sel=csel();
+  if(sel.length===1&&sel[0]===ALLBC) return ALLBC;
+  if(sel.length===1) return dispName(sel[0]);
+  return `${sel.length} ${cs.level==="district"?"regional districts":"communities"} selected`; }
+function updateSummary(){ document.getElementById("c_comboSummary").textContent=summaryText(); }
+function setupCombo(){
+  const btn=document.getElementById("c_comboBtn"), panel=document.getElementById("c_comboPanel");
+  const input=document.getElementById("c_muniInput"), list=document.getElementById("c_muniList"), clearBtn=document.getElementById("c_selClear");
+  let matches=[],active=-1,lastQ="";
+  const open=()=>{panel.hidden=false;btn.setAttribute("aria-expanded","true");input.value="";filter("");setTimeout(()=>input.focus(),0);};
+  const close=()=>{panel.hidden=true;btn.setAttribute("aria-expanded","false");active=-1;};
+  function hl(t,q){ if(!q)return esc(t); const i=t.toLowerCase().indexOf(q);
+    return i<0?esc(t):esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length)); }
+  function foot(){ const sel=csel(); const all=sel.length===1&&sel[0]===ALLBC;
+    document.getElementById("c_selCount").textContent=all?"Showing all":`${sel.length} selected`; }
+  function filter(raw){ const q=(raw||"").trim().toLowerCase(); lastQ=q;
+    matches=clist().filter(m=> !q||m.toLowerCase().includes(q)||(CRASH.region[m]||"").toLowerCase().includes(q)||((CRASH.alias||{})[m]||"").toLowerCase().includes(q)).slice(0,400);
+    active=-1; paint(q); }
+  function paint(q){ const noun=cs.level==="district"?"regional district":"community";
+    if(!matches.length){ list.innerHTML=`<li class="combo-empty">No ${noun} matches</li>`; return; }
+    const sel=new Set(csel());
+    list.innerHTML=matches.map((m,i)=>{ const r=secondary(m); const reg=r?`<span class="reg">${esc(r)}</span>`:""; const on=sel.has(m);
+      return `<li role="option" data-m="${esc(m)}" aria-selected="${on}" class="${i===active?'active':''}"><span class="cb">${on?'&#10003;':''}</span><span class="nm">${hl(m,q)}</span>${reg}</li>`; }).join(""); }
+  function toggle(name){ let sel=csel().slice();
+    if(name===ALLBC){ sel=[ALLBC]; } else { sel=sel.filter(x=>x!==ALLBC); const i=sel.indexOf(name); if(i>=0)sel.splice(i,1); else sel.push(name); if(!sel.length)sel=[ALLBC]; }
+    cs.sel[cs.level]=sel; paint(lastQ); foot(); updateSummary(); render(); }
+  function scrollA(){ const el=list.children[active]; if(el&&el.scrollIntoView)el.scrollIntoView({block:"nearest"}); }
+  btn.addEventListener("click",()=>{ panel.hidden?open():close(); });
+  input.addEventListener("input",()=>filter(input.value));
+  input.addEventListener("keydown",e=>{ if(e.key==="ArrowDown"){active=Math.min(active+1,matches.length-1);paint(lastQ);scrollA();e.preventDefault();}
+    else if(e.key==="ArrowUp"){active=Math.max(active-1,0);paint(lastQ);scrollA();e.preventDefault();}
+    else if(e.key==="Enter"){const p=active>=0?matches[active]:matches[0]; if(p){toggle(p);e.preventDefault();}}
+    else if(e.key==="Escape"){close();btn.focus();} });
+  list.addEventListener("mousedown",e=>{ const li=e.target.closest("li[data-m]"); if(li){toggle(li.dataset.m);e.preventDefault();} });
+  clearBtn.addEventListener("click",()=>{ cs.sel[cs.level]=[ALLBC]; paint(lastQ); foot(); updateSummary(); render(); });
+  document.addEventListener("mousedown",e=>{ if(!document.getElementById("c_combo").contains(e.target)) close(); });
+  setupCombo._refresh=()=>{ updateSummary(); foot(); input.placeholder=cs.level==="district"?"Search a regional district...":"Search a community..."; if(!panel.hidden){input.value="";filter("");} };
+  updateSummary(); foot();
+}
+
+/* ---------- interactive density map (canvas) ---------- */
+const CW=2000, CH=1240, MPAD=30, MASPECT=(CW-2*MPAD)/(CH-2*MPAD);
+let view=null, curP=null, lastGeoKey=null, rafPending=false;
+let bubbles=[], mergeNote="";
+const BUB_MIN=24;       // smallest bubble block, canvas px
+const BIN0=1/4096;      // finest merge distance in degrees (~27 m); coarser levels are powers of 2 of this
+const LON_K=0.65;       // ~cos(49.5 deg): makes lon bins roughly square on screen
+/* crash locations: every point ICBC geocodes to (an intersection or a mid-block address range) */
+let LOC=null;   // {n, lat, lon, muni, name, names, cnt:[s0c,s0v,...,s4c,s4v]}
+async function loadLocations(){
+  try{
+    const raw=await loadData("crashLocs"), n=raw.n;
+    const lat=new Float64Array(n), lon=new Float64Array(n); let a=0,b=0;
+    for(let i=0;i<n;i++){ a+=raw.dla[i]; b+=raw.dlo[i]; lat[i]=a*raw.q; lon[i]=b*raw.q; }
+    LOC={n, lat, lon, muni:Int32Array.from(raw.muni), name:Int32Array.from(raw.name), names:raw.names,
+      cnt:raw.cnt.map(c=>Int32Array.from(c))};
+    LABELS=null; view=null; lastGeoKey=null; scheduleDraw();
+  }catch(e){ console.warn("crash locations unavailable", e); }
+}
+function cssvar(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||"#888"; }
+function selMuniSet(){ const sel=csel(); if(sel.includes(ALLBC)) return null;
+  const set=new Set();
+  for(const nm of sel){
+    if(cs.level==="district"){ CRASH.muniList.forEach((m,i)=>{ if(CRASH.muniRD[m]===nm) set.add(i); }); }
+    else if(nm in MUNI_IDX) set.add(MUNI_IDX[nm]);
+  } return set; }
+function projFor(win){
+  const latMid=(win.laMin+win.laMax)/2, cosf=Math.cos(latMid*Math.PI/180);
+  const xr=(win.loMax-win.loMin)*cosf, yr=(win.laMax-win.laMin);
+  const scale=Math.min((CW-2*MPAD)/xr,(CH-2*MPAD)/yr);
+  const offX=(CW-xr*scale)/2, offY=(CH-yr*scale)/2;
+  return {cosf,scale,offX,offY,win,
+    px:lon=>offX+(lon-win.loMin)*cosf*scale, py:lat=>offY+(win.laMax-lat)*scale,
+    ilon:x=>win.loMin+(x-offX)/(cosf*scale), ilat:y=>win.laMax-(y-offY)/scale}; }
+function fitWindow(b){
+  let loMid=(b[0]+b[1])/2, laMid=(b[2]+b[3])/2, cosf=Math.cos(laMid*Math.PI/180);
+  let lonSpan=Math.max(b[1]-b[0],0.04)*1.15, latSpan=Math.max(b[3]-b[2],0.04)*1.15;
+  if(lonSpan*cosf/latSpan>MASPECT) latSpan=lonSpan*cosf/MASPECT; else lonSpan=latSpan*MASPECT/cosf;
+  return {loMin:loMid-lonSpan/2,loMax:loMid+lonSpan/2,laMin:laMid-latSpan/2,laMax:laMid+latSpan/2}; }
+function selectionBBox(){
+  if(!LOC) return null;
+  const set=selMuniSet(), cnt=LOC.cnt[cs.ru*2+(isV()?1:0)];
+  let lo=1e9,hi=-1e9,la=1e9,ha=-1e9,any=false;
+  for(let i=0;i<LOC.n;i++){ if(cnt[i]<=0) continue; if(set&&!set.has(LOC.muni[i])) continue; any=true;
+    const lat=LOC.lat[i],lon=LOC.lon[i]; if(lon<lo)lo=lon;if(lon>hi)hi=lon;if(lat<la)la=lat;if(lat>ha)ha=lat; }
+  return any?[lo,hi,la,ha]:null; }
+/* ---------- vector basemap (OSM roads + Natural Earth water) ---------- */
+let BM=null;   // {q, roads:{cls:[{bb:[x0,x1,y0,y1], lines:[Int32Array]}]}, lakes, rivers}
+function decodeFlat(arr,ox,oy){ const out=[]; let i=0;
+  while(i<arr.length){ const n=arr[i++]; const a=new Int32Array(n*2); let x=arr[i++]+ox,y=arr[i++]+oy; a[0]=x; a[1]=y;
+    for(let k=1;k<n;k++){ x+=arr[i++]; y+=arr[i++]; a[2*k]=x; a[2*k+1]=y; } out.push(a); }
+  return out; }
+function bboxOf(lines){ let x0=1e12,x1=-1e12,y0=1e12,y1=-1e12;
+  for(const a of lines) for(let k=0;k<a.length;k+=2){ const x=a[k],y=a[k+1]; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  return [x0,x1,y0,y1]; }
+async function loadBasemap(){
+  try{
+    const raw=await loadData("basemap");
+    const tq=Math.round(raw.tile/raw.q), roads={};
+    for(const cls of raw.classes){ roads[cls]=Object.entries(raw.roads[cls]||{}).map(([key,arr])=>{
+      const [tx,ty]=key.split(",").map(Number); const lines=decodeFlat(arr,tx*tq,ty*tq); return {bb:bboxOf(lines),lines}; }); }
+    const flat=list=>list.map(arr=>decodeFlat(arr,0,0)[0]);
+    const lakes=flat(raw.lakes), rivers=flat(raw.rivers);
+    BM={q:raw.q, classes:raw.classes, roads, lakes, rivers, lakesBB:lakes.map(a=>bboxOf([a])), riversBB:rivers.map(a=>bboxOf([a]))};
+    scheduleDraw();
+  }catch(e){ console.warn("basemap unavailable", e); }
+}
+// visible at lat spans <= max (degrees); widths in canvas px [zoomed out, zoomed in]
+const ROAD_STYLE={motorway:{max:99,w:[2.2,7],major:true}, primary:{max:4,w:[1.6,6],major:true},
+  secondary:{max:1.6,w:[1.3,5]}, tertiary:{max:0.7,w:[1,4]}, residential:{max:0.3,w:[0.8,3]}};
+function drawBasemap(ctx,P,latSpan){
+  if(!BM) return;
+  const q=BM.q, kx=q*P.cosf*P.scale, bx=P.offX-P.win.loMin*P.cosf*P.scale, ky=-q*P.scale, by=P.offY+P.win.laMax*P.scale;
+  const vx0=(P.win.loMin)/q, vx1=(P.win.loMax)/q, vy0=(P.win.laMin)/q, vy1=(P.win.laMax)/q;
+  const hit=bb=>!(bb[1]<vx0||bb[0]>vx1||bb[3]<vy0||bb[2]>vy1);
+  const trace=(a,close)=>{ ctx.moveTo(a[0]*kx+bx,a[1]*ky+by); for(let k=2;k<a.length;k+=2) ctx.lineTo(a[k]*kx+bx,a[k+1]*ky+by); if(close)ctx.closePath(); };
+  // zoom factor 0 (span >= 1 deg) .. 1 (span <= 0.02 deg)
+  const z=Math.max(0,Math.min(1,Math.log(1/latSpan)/Math.log(50)));
+  ctx.lineJoin="round"; ctx.lineCap="round";
+  // water
+  ctx.beginPath(); BM.lakes.forEach((a,i)=>{ if(hit(BM.lakesBB[i])) trace(a,true); });
+  ctx.fillStyle=cssvar("--map-water"); ctx.fill("evenodd");
+  if(latSpan>0.15){ ctx.beginPath(); BM.rivers.forEach((a,i)=>{ if(hit(BM.riversBB[i])) trace(a,false); });
+    ctx.strokeStyle=cssvar("--map-water"); ctx.lineWidth=1.4+2*z; ctx.stroke(); }
+  drawRoads(ctx,P,latSpan);
+}
+// roads, minor first so highways sit on top; each class traced once, stroked as casing + fill
+function drawRoads(ctx,P,latSpan){
+  if(!BM) return;
+  const q=BM.q, kx=q*P.cosf*P.scale, bx=P.offX-P.win.loMin*P.cosf*P.scale, ky=-q*P.scale, by=P.offY+P.win.laMax*P.scale;
+  const vx0=P.win.loMin/q, vx1=P.win.loMax/q, vy0=P.win.laMin/q, vy1=P.win.laMax/q;
+  const hit=bb=>!(bb[1]<vx0||bb[0]>vx1||bb[3]<vy0||bb[2]>vy1);
+  const z=Math.max(0,Math.min(1,Math.log(1/latSpan)/Math.log(50)));
+  const cRoad=cssvar("--map-road"), cCase=cssvar("--map-case"), cMaj=cssvar("--map-major"), cMajC=cssvar("--map-majcase");
+  ctx.lineJoin="round"; ctx.lineCap="round";
+  for(const cls of [...BM.classes].reverse()){ const st=ROAD_STYLE[cls]; if(!st||latSpan>st.max) continue;
+    ctx.beginPath(); let any=false;
+    for(const t of BM.roads[cls]) if(hit(t.bb)){ any=true;
+      for(const a of t.lines){ ctx.moveTo(a[0]*kx+bx,a[1]*ky+by); for(let k=2;k<a.length;k+=2) ctx.lineTo(a[k]*kx+bx,a[k+1]*ky+by); } }
+    if(!any) continue;
+    const w=st.w[0]+(st.w[1]-st.w[0])*z;
+    if(z>0.35){ ctx.strokeStyle=st.major?cMajC:cCase; ctx.lineWidth=w+2.2; ctx.stroke(); }
+    ctx.strokeStyle=st.major?cMaj:cRoad; ctx.lineWidth=w; ctx.stroke(); }
+}
+// community labels at crash-weighted centroids, larger places win collisions
+let LABELS=null;
+function muniLabels(){ if(LABELS) return LABELS;
+  if(!LOC) return [];
+  const acc=new Map(), w0=LOC.cnt[0];
+  for(let i=0;i<LOC.n;i++){ const w=w0[i], m=LOC.muni[i]; if(!(w>0)||m<0) continue; let a=acc.get(m); if(!a){a=[0,0,0];acc.set(m,a);}
+    a[0]+=w; a[1]+=w*LOC.lon[i]; a[2]+=w*LOC.lat[i]; }
+  LABELS=[...acc].map(([m,a])=>({name:CRASH.muniList[m],lon:a[1]/a[0],lat:a[2]/a[0],w:a[0]}))
+    .filter(l=>l.name&&!/unknown/i.test(l.name)).sort((x,y)=>y.w-x.w);
+  return LABELS; }
+function drawLabels(ctx,P,latSpan){
+  const placed=[], maxN=latSpan>4?14:latSpan>1?28:60;
+  ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.lineJoin="round";
+  ctx.strokeStyle=cssvar("--map-halo"); ctx.fillStyle=cssvar("--map-label");
+  let n=0;
+  for(const [i,l] of muniLabels().entries()){
+    if(n>=maxN) break;
+    const x=P.px(l.lon), y=P.py(l.lat); if(x<40||x>CW-40||y<30||y>CH-30) continue;
+    const big=i<12; ctx.font=`${big?700:600} ${big?30:25}px system-ui,-apple-system,"Segoe UI",sans-serif`;
+    const w=ctx.measureText(l.name).width+16, h=big?38:32, box=[x-w/2,y-h/2,x+w/2,y+h/2];
+    if(placed.some(b=>!(box[2]<b[0]||box[0]>b[2]||box[3]<b[1]||box[1]>b[3]))) continue;
+    placed.push(box); n++;
+    ctx.lineWidth=7; ctx.strokeText(l.name,x,y); ctx.fillText(l.name,x,y); }
+}
+
+function drawMap(){
+  const cv=document.getElementById("crashMap"), ctx=cv.getContext("2d");
+  ctx.clearRect(0,0,CW,CH);
+  const geoKey=cs.level+"|"+csel().join("|");
+  if(geoKey!==lastGeoKey){ view=null; lastGeoKey=geoKey; }
+  const bbox=selectionBBox();
+  const rm=document.getElementById("c_rampMax");
+  bubbles=[];
+  if(!bbox){ ctx.fillStyle=cssvar("--muted"); ctx.font="600 30px system-ui,sans-serif"; ctx.textAlign="center";
+    ctx.fillText(LOC?"No mapped crashes for this selection":"Loading map...",CW/2,CH/2); if(rm)rm.textContent=""; return; }
+  if(!view) view=fitWindow(bbox);
+  const P=projFor(view); curP=P;
+  const latSpan=view.laMax-view.laMin;
+  // ground: at province scale shade BC's (coarse) outline against its neighbours; closer in, all land
+  if(latSpan>3){ ctx.fillStyle=cssvar("--map-out"); ctx.fillRect(0,0,CW,CH); ctx.beginPath();
+    for(const ring of OUTLINE.rings){ ring.forEach((p,i)=>{ const x=P.px(p[0]),y=P.py(p[1]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); ctx.closePath(); }
+    ctx.fillStyle=cssvar("--map-land"); ctx.fill();
+    ctx.strokeStyle=cssvar("--base"); ctx.lineWidth=1.4; ctx.stroke(); }
+  else { ctx.fillStyle=cssvar("--map-land"); ctx.fillRect(0,0,CW,CH); }
+  drawBasemap(ctx,P,latSpan);
+  // proportional bubbles: merge locations into square bins of BIN0 * 2^k degrees, anchored to a fixed
+  // grid so bubbles stay put while panning; k is the smallest level whose bin spans >= BUB_MIN px.
+  // Fully zoomed in, bins are ~27 m, so each bubble is a single intersection or address block.
+  const k=Math.max(0,Math.ceil(Math.log2(BUB_MIN/(BIN0*P.scale)))), bin=BIN0*Math.pow(2,k), binLo=bin/LON_K;
+  const set=selMuniSet(), cnt=LOC.cnt[cs.ru*2+(isV()?1:0)];
+  const mLo=view.loMin-binLo, mHi=view.loMax+binLo, mLa=view.laMin-bin, mHa=view.laMax+bin;
+  const bins=new Map();
+  for(let i=0;i<LOC.n;i++){ const v=cnt[i]; if(v<=0) continue;
+    const lat=LOC.lat[i], lon=LOC.lon[i]; if(lon<mLo||lon>mHi||lat<mLa||lat>mHa) continue;
+    if(set&&!set.has(LOC.muni[i])) continue;
+    const key=Math.floor(lat/bin)*1e7+Math.floor(lon/binLo); let b=bins.get(key);
+    if(!b){ b={v:0,la:0,lo:0,n:0,top:0,ti:-1}; bins.set(key,b); }
+    b.v+=v; b.la+=v*lat; b.lo+=v*lon; b.n++; if(v>b.top){ b.top=v; b.ti=i; } }
+  let bmax=0; for(const b of bins.values()) if(b.v>bmax) bmax=b.v;
+  const rmax=Math.min(Math.max(bin*P.scale*0.62, 30), 64);
+  const ramp=isDark()?RAMP_D:RAMP_L;
+  // size: radius ~ count^0.45 (slightly compressed vs area-true 0.5), capped at 1.35x above the reference;
+  // colour: log scale so contrast survives the huge urban/rural range
+  const lmax=Math.log1p(bmax);
+  // size reference = 98th-percentile bubble so a handful of metro giants don't shrink everything else
+  const vals=[...bins.values()].map(b=>b.v).sort((a,b)=>a-b), ref=vals[Math.floor((vals.length-1)*0.98)]||bmax;
+  bubbles=[...bins.values()].map(b=>{ const t=Math.log1p(b.v)/lmax;
+    const single=b.n===1, x=single?LOC.lon[b.ti]:b.lo/b.v, y=single?LOC.lat[b.ti]:b.la/b.v;
+    return {x:P.px(x), y:P.py(y), r:Math.max(3.4,rmax*Math.min(1.35,Math.pow(b.v/ref,0.45))), v:b.v, n:b.n, top:b.top, ti:b.ti,
+      col:ramp[Math.min(ramp.length-1,Math.floor(t*ramp.length))]}; }).sort((a,b)=>b.v-a.v);
+  // biggest first so small bubbles stay visible on top; a thin halo separates overlaps
+  ctx.strokeStyle=cssvar("--map-halo"); ctx.lineWidth=1.3;
+  for(const b of bubbles){ ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+    ctx.globalAlpha=0.78; ctx.fillStyle=b.col; ctx.fill(); ctx.globalAlpha=0.7; ctx.stroke(); }
+  ctx.globalAlpha=1;
+  const vmax=bmax, m=bin*111000;
+  mergeNote=k===0?"Each bubble is one intersection or address block":`Bubbles merge crash locations within ~${m<1000?Math.round(m/10)*10+" m":(m/1000).toFixed(m<10000?1:0)+" km"}`;
+  drawLabels(ctx,P,latSpan);
+  document.getElementById("c_ramp").innerHTML=ramp.map((c,i)=>{ const d=5+i*2.6; return `<i style="background:${c};width:${d}px;height:${d}px"></i>`; }).join("");
+  if(rm) rm.textContent="More ("+fmtFull(vmax)+")";
+  document.getElementById("c_geocodeNote").textContent=`${mergeNote}. ${CRASH.map.pct_geocoded}% of crashes geocoded. Map data (c) OpenStreetMap contributors (ODbL), Natural Earth`;
+}
+function scheduleDraw(){ if(rafPending)return; rafPending=true; requestAnimationFrame(()=>{rafPending=false; drawMap();}); }
+function setupMap(){
+  const cv=document.getElementById("crashMap");
+  const toLL=e=>{ const r=cv.getBoundingClientRect(); const x=(e.clientX-r.left)/r.width*CW, y=(e.clientY-r.top)/r.height*CH;
+    return curP?[curP.ilon(x),curP.ilat(y)]:null; };
+  function zoomAt(lon,lat,f){ if(!view)return; const ns=(view.laMax-view.laMin)*f; if(ns<0.005||ns>16)return;
+    view={loMin:lon-(lon-view.loMin)*f, loMax:lon+(view.loMax-lon)*f, laMin:lat-(lat-view.laMin)*f, laMax:lat+(view.laMax-lat)*f}; scheduleDraw(); }
+  let drag=null;
+  cv.addEventListener("wheel",e=>{ e.preventDefault(); const ll=toLL(e); if(ll) zoomAt(ll[0],ll[1], e.deltaY<0?0.82:1.22); },{passive:false});
+  cv.addEventListener("mousedown",e=>{ if(!curP||!view)return; drag={x:e.clientX,y:e.clientY,win:{...view},P:curP}; cv.classList.add("grabbing"); e.preventDefault(); });
+  cv.addEventListener("mousemove",e=>{ if(drag){
+      const r=cv.getBoundingClientRect(); const dvx=(e.clientX-drag.x)/r.width*CW, dvy=(e.clientY-drag.y)/r.height*CH;
+      const dlon=dvx/(drag.P.cosf*drag.P.scale), dlat=dvy/drag.P.scale;
+      view={loMin:drag.win.loMin-dlon,loMax:drag.win.loMax-dlon,laMin:drag.win.laMin+dlat,laMax:drag.win.laMax+dlat}; scheduleDraw(); return; }
+    if(!curP){hideTT();return;} const ll=toLL(e); if(!ll){hideTT();return;}
+    const r=cv.getBoundingClientRect(), mx=(e.clientX-r.left)/r.width*CW, my=(e.clientY-r.top)/r.height*CH;
+    let hit=null; for(const b of bubbles){ const dx=mx-b.x, dy=my-b.y; if(dx*dx+dy*dy<=b.r*b.r && (!hit||b.r<hit.r)) hit=b; }
+    if(hit){ const nm=LOC.names[LOC.name[hit.ti]], mw=isV()?"Victims":"Crashes", mu=CRASH.muniList[LOC.muni[hit.ti]]||"";
+      const sub='<div style="opacity:.65;font-size:11px;margin-top:2px">';
+      showTT(hit.n===1
+        ? `<b>${esc(nm)}</b><div class="r"><span>${mw}</span><b>${fmtFull(hit.v)}</b></div>${sub}${esc(mu)}</div>`
+        : `<b>${esc(nm)}</b><div class="r"><span>${mw} here</span><b>${fmtFull(hit.top)}</b></div><div class="r"><span>Bubble total (${fmtFull(hit.n)} locations)</span><b>${fmtFull(hit.v)}</b></div>${sub}Busiest location in this bubble. Zoom in to split it.</div>`,e); }
+    else hideTT(); });
+  window.addEventListener("mouseup",()=>{ if(drag){drag=null; cv.classList.remove("grabbing");} });
+  cv.addEventListener("mouseleave",hideTT);
+  cv.addEventListener("dblclick",e=>{ const ll=toLL(e); if(ll) zoomAt(ll[0],ll[1],0.6); });
+  const ctr=()=>[(view.loMin+view.loMax)/2,(view.laMin+view.laMax)/2];
+  document.getElementById("c_zoomIn").addEventListener("click",()=>{ if(view){const c=ctr(); zoomAt(c[0],c[1],0.7);} });
+  document.getElementById("c_zoomOut").addEventListener("click",()=>{ if(view){const c=ctr(); zoomAt(c[0],c[1],1.43);} });
+  document.getElementById("c_mapReset").addEventListener("click",()=>{ view=null; lastGeoKey=null; drawMap(); });
+}
+
+/* ---------- bar rows ---------- */
+function bars(elId, items){ const el=document.getElementById(elId);
+  const max=Math.max(1,...items.map(i=>i.value));
+  el.innerHTML=items.map(i=>{ const w=(100*i.value/max).toFixed(1);
+    return `<div class="barrow${i.peak?' peak':''}"><span class="lbl" title="${esc(i.label)}">${esc(i.label)}</span><span class="track"><span class="fill" style="width:${w}%"></span></span><span class="val">${fmtFull(i.value)}</span></div>`;
+  }).join(""); }
+
+function kpis(a){
+  const el=document.getElementById("c_kpis");
+  const tv=isV()?a.timev:a.time, dv=isV()?a.dayv:a.day;
+  const peakT=TIMES[argmax(tv)], peakD=DAYS[argmax(dv)];
+  const mw=measWord();
+  el.innerHTML=`
+    <div class="kpi"><div class="k-label">Crashes</div><div class="k-val">${fmtFull(a.c)}</div><div class="k-delta">reported incidents, 2021&ndash;2025</div></div>
+    <div class="kpi"><div class="k-label">Victims (injured or killed)</div><div class="k-val">${fmtFull(a.v)}</div><div class="k-delta">${a.c?(100*a.v/a.c).toFixed(0):0} per 100 crashes</div></div>
+    <div class="kpi peakcard"><div class="k-label">Peak time of day (${mw})</div><div class="k-val k-big">${peakT}</div><div class="k-delta">${fmtFull(Math.max(...tv))} ${mw} in this band</div></div>
+    <div class="kpi"><div class="k-label">Busiest day (${mw})</div><div class="k-val k-big">${peakD}</div><div class="k-delta">${fmtFull(Math.max(...dv))} ${mw}</div></div>`;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const a=combine(csel());
+  kpis(a); drawMap();
+  const mw=measWord();
+  // streets (measure-aware, top 12)
+  const stItems=a.st? Object.entries(a.st).map(([idx,cv])=>({label:CRASH.streetNames[idx]||"?", value:isV()?cv[1]:cv[0]})) : [];
+  stItems.sort((x,y)=>y.value-x.value);
+  bars("c_streets", stItems.slice(0,12));
+  document.getElementById("c_streetsNote").textContent=`Streets with the most ${mw} in the selection`;
+  // crash configuration
+  const cfg=isV()?a.cfgv:a.cfg;
+  bars("c_config", CONFIGS.map((c,i)=>({label:c.replace(/ - /g," - "), value:cfg[i]})).sort((x,y)=>y.value-x.value));
+  // day of week (keep natural order)
+  const day=isV()?a.dayv:a.day, dpk=argmax(day);
+  bars("c_day", DAYS.map((d,i)=>({label:d, value:day[i], peak:i===dpk})));
+  // month (natural order)
+  const mon=isV()?a.monv:a.mon, mpk=argmax(mon);
+  bars("c_month", MONTHS.map((m,i)=>({label:m, value:mon[i], peak:i===mpk})));
+  // time of day
+  const time=isV()?a.timev:a.time, tpk=argmax(time);
+  bars("c_time", TIMES.map((t,i)=>({label:t, value:time[i], peak:i===tpk})));
+  const yr=isV()?a.yrv:a.yr, ypk=argmax(yr);
+  bars("c_year", YEARS_C.map((y,i)=>({label:String(y), value:yr[i], peak:i===ypk})));
+  document.getElementById("c_footNote").innerHTML=`<span class="hl">This view:</span> ${SLICES[cs.ru].toLowerCase()==="all crashes"?"all crashes":("crashes involving a "+SLICES[cs.ru].toLowerCase())} &middot; showing ${mw}. Peak time <b>${TIMES[tpk]}</b>, busiest day <b>${DAYS[dpk]}</b>.`;
+  // measure labels
+  document.querySelectorAll(".c-measure").forEach(n=>n.textContent=mw);
+}
+window.CrashApp={render};
+
+/* ---------- init ---------- */
+(function(){
+  setupCombo();
+  setupMap();
+  loadBasemap();
+  loadLocations();
+  document.querySelectorAll('.seg button[data-clvl]').forEach(b=>b.addEventListener("click",()=>{
+    if(cs.level===b.dataset.clvl) return; cs.level=b.dataset.clvl;
+    document.querySelectorAll('.seg button[data-clvl]').forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+    document.getElementById("c_geoLabel").textContent=cs.level==="district"?"Regional district":"Community";
+    setupCombo._refresh(); render(); }));
+  document.querySelectorAll('.seg button[data-meas]').forEach(b=>b.addEventListener("click",()=>{
+    cs.meas=b.dataset.meas;
+    document.querySelectorAll('.seg button[data-meas]').forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); render(); }));
+  document.querySelectorAll('.seg button[data-ru]').forEach(b=>b.addEventListener("click",()=>{
+    cs.ru=+b.dataset.ru;
+    document.querySelectorAll('.seg button[data-ru]').forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); render(); }));
+  render();
+  const mo=new MutationObserver(()=>render());
+  mo.observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+})();
+};  /* ===== end CRASH TAB ===== */
+</script>
+
+<script>
+window.TabBoot.police=function(POLICE){  /* ===== POLICE TAB ===== */
+const ALLP="All BC";
+let pg={level:"region", year:"All", sel:{region:[ALLP], community:[ALLP]}};
+const pList=()=> pg.level==="community"? [ALLP, ...POLICE.munis] : [ALLP, ...POLICE.regions];
+const pSel=()=> pg.sel[pg.level];
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+const fmtFull=n=>Math.round(n).toLocaleString();
+const titl=s=>String(s).replace(/\w\S*/g,t=>t.charAt(0).toUpperCase()+t.slice(1).toLowerCase());
+/* geography resolution: municipality set (for crash/reason panels) & region set (for who/factor panels) */
+function muniSet(){ const sel=pSel(); if(sel.includes(ALLP)) return null;
+  const set=new Set();
+  if(pg.level==="community") sel.forEach(m=>set.add(m));
+  else for(const m in POLICE.muniRegion){ if(sel.includes(POLICE.muniRegion[m])) set.add(m); }
+  return set; }
+function regionSet(){ const sel=pSel(); if(sel.includes(ALLP)) return null;
+  if(pg.level==="region") return new Set(sel);
+  const set=new Set(); sel.forEach(m=>{ const r=POLICE.muniRegion[m]; if(r) set.add(r); }); return set; }
+const yearOk=yr=> pg.year==="All"||yr===pg.year;
+function sumBy(obj, gs){ let r=null; for(const k in obj){ const p=k.split("|"); if(!yearOk(p[1]))continue; if(gs&&!gs.has(p[0]))continue;
+  const a=obj[k]; if(!r)r=a.slice(); else for(let i=0;i<a.length;i++)r[i]+=a[i]; } return r||[]; }
+function sumTotBy(obj, gs){ const r={}; for(const k in obj){ const p=k.split("|"); if(!yearOk(p[1]))continue; if(gs&&!gs.has(p[0]))continue;
+  const o=obj[k]; for(const m in o)r[m]=(r[m]||0)+o[m]; } return r; }
+function sumReasonsBy(wr, gs){ let vals=null,cr=0; for(const k in wr.cells){ const p=k.split("|"); if(!yearOk(p[1]))continue; if(gs&&!gs.has(p[0]))continue;
+  const c=wr.cells[k]; cr+=c.crashes; if(!vals)vals=c.vals.slice(); else for(let i=0;i<vals.length;i++)vals[i]+=c.vals[i]; } return {vals:vals||[],crashes:cr}; }
+function bars(elId, items){ const el=document.getElementById(elId); if(!el)return; const max=Math.max(1,...items.map(i=>i.value));
+  el.innerHTML=items.map(i=>{ const w=(100*i.value/max).toFixed(1);
+    return `<div class="barrow${i.peak?' peak':''}"><span class="lbl" title="${esc(i.label)}">${esc(i.label)}</span><span class="track"><span class="fill" style="width:${w}%"></span></span><span class="val">${fmtFull(i.value)}</span></div>`; }).join(""); }
+function barsReasons(elId, labels, sum){ const el=document.getElementById(elId); const cr=sum.crashes||1, max=Math.max(1,...sum.vals);
+  el.innerHTML=labels.map((l,i)=>{ const v=sum.vals[i]||0, w=(100*v/max).toFixed(1), pct=(100*v/cr).toFixed(1);
+    return `<div class="barrow"><span class="lbl" title="${esc(l)}">${esc(l)}</span><span class="track"><span class="fill" style="width:${w}%"></span></span><span class="val pct">${pct}% (${fmtFull(v)})</span></div>`; }).join(""); }
+const zipTop=(labels,vals)=>labels.map((l,i)=>({label:l,value:vals[i]||0})).sort((a,b)=>b.value-a.value);
+const zipNat=(labels,vals)=>labels.map((l,i)=>({label:l,value:vals[i]||0}));
+function kpis(tot,rsum){ const el=document.getElementById("p_kpis");
+  const crashes=tot.CRASH_COUNT||0, cas=tot.TOTAL_CASUALTY||0;
+  const li=POLICE.whyReasons.labels, ii=li.indexOf("Impaired (alc/drug)"), si=li.indexOf("Speed-related");
+  const imp=rsum.crashes?(100*(rsum.vals[ii]||0)/rsum.crashes):0, spd=rsum.crashes?(100*(rsum.vals[si]||0)/rsum.crashes):0;
+  el.innerHTML=`
+    <div class="kpi"><div class="k-label">Crashes</div><div class="k-val">${fmtFull(crashes)}</div><div class="k-delta">police-reported, 2020-2024</div></div>
+    <div class="kpi"><div class="k-label">Casualties</div><div class="k-val">${fmtFull(cas)}</div><div class="k-delta">${crashes?(100*cas/crashes).toFixed(0):0} per 100 crashes</div></div>
+    <div class="kpi peakcard"><div class="k-label">Impairment-involved</div><div class="k-val">${imp.toFixed(1)}%</div><div class="k-delta">alcohol or drugs</div></div>
+    <div class="kpi"><div class="k-label">Speed-related</div><div class="k-val">${spd.toFixed(1)}%</div><div class="k-delta">of crashes</div></div>`; }
+function render(){
+  const H=POLICE.how, WF=POLICE.whyFactors, WR=POLICE.whyReasons, WE=POLICE.whoEntity, WV=POLICE.whoVictim;
+  const mset=muniSet(), rset=regionSet();
+  kpis(sumTotBy(H.tot,mset), sumReasonsBy(WR,mset));
+  bars("p_collision", zipTop(H.labels.collision, sumBy(H.data.collision,mset)));
+  bars("p_config", zipTop(H.labels.config, sumBy(H.data.config,mset)));
+  bars("p_weather", zipTop(H.labels.weather, sumBy(H.data.weather,mset)));
+  bars("p_road", zipTop(H.labels.road, sumBy(H.data.road,mset)));
+  bars("p_light", zipTop(H.labels.light, sumBy(H.data.light,mset)));
+  barsReasons("p_reasons", WR.labels, sumReasonsBy(WR,mset));
+  bars("p_factors", zipTop(WF.labels, sumBy(WF.cells,rset)));
+  bars("p_vehType", zipTop(WE.labels.vehType, sumBy(WE.data.vehType,rset)));
+  bars("p_vehUse", zipTop(WE.labels.vehUse, sumBy(WE.data.vehUse,rset)));
+  bars("p_eage", zipNat(WE.labels.age, sumBy(WE.data.age,rset)));
+  bars("p_egender", zipNat(WE.labels.gender, sumBy(WE.data.gender,rset)));
+  bars("p_injury", zipNat(WV.labels.injury, sumBy(WV.data.injury,rset)));
+  bars("p_role", zipTop(WV.labels.role, sumBy(WV.data.role,rset)));
+  bars("p_safety", zipTop(WV.labels.safety, sumBy(WV.data.safety,rset)));
+  const s=pSel(); const gl=s.includes(ALLP)?"All BC":(pg.level==="community"?s.map(titl).join(", "):s.join(", "));
+  const yl=pg.year==="All"?"2020-2024":pg.year;
+  const wr=rset?[...rset].join(", "):"all regions";
+  document.getElementById("p_footNote").innerHTML=`<span class="hl">This view:</span> ${esc(gl)}, ${esc(yl)}. Who &amp; contributing-factor panels shown for ${esc(wr)} (region-level).`;
+}
+window.PoliceApp={render};
+function setupPCombo(){
+  const btn=document.getElementById("p_comboBtn"), panel=document.getElementById("p_comboPanel");
+  const input=document.getElementById("p_muniInput"), list=document.getElementById("p_muniList"), clearBtn=document.getElementById("p_selClear");
+  let matches=[],active=-1,lastQ="";
+  const disp=m=> (pg.level==="community"&&m!==ALLP)? titl(m) : m;
+  const open=()=>{panel.hidden=false;btn.setAttribute("aria-expanded","true");input.value="";filter("");setTimeout(()=>input.focus(),0);};
+  const close=()=>{panel.hidden=true;btn.setAttribute("aria-expanded","false");active=-1;};
+  function summary(){ const s=pSel(); if(s.length===1&&s[0]===ALLP)return "All BC"; if(s.length===1)return disp(s[0]);
+    return `${s.length} ${pg.level==="community"?"communities":"regions"} selected`; }
+  function updSummary(){ document.getElementById("p_comboSummary").textContent=summary(); }
+  function hl(t,q){ if(!q)return esc(t); const i=t.toLowerCase().indexOf(q); return i<0?esc(t):esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length)); }
+  function foot(){ const s=pSel(); const all=s.length===1&&s[0]===ALLP; document.getElementById("p_selCount").textContent=all?"Showing all":`${s.length} selected`; }
+  function filter(raw){ const q=(raw||"").trim().toLowerCase(); lastQ=q;
+    matches=pList().filter(m=> !q||disp(m).toLowerCase().includes(q)||(pg.level==="community"&&(POLICE.muniRegion[m]||"").toLowerCase().includes(q))).slice(0,500);
+    active=-1; paint(q); }
+  function paint(q){ const noun=pg.level==="community"?"community":"region";
+    if(!matches.length){ list.innerHTML=`<li class="combo-empty">No ${noun} matches</li>`; return; }
+    const sel=new Set(pSel());
+    list.innerHTML=matches.map((m,i)=>{ const reg=(pg.level==="community"&&m!==ALLP)?`<span class="reg">${esc(POLICE.muniRegion[m]||"")}</span>`:""; const on=sel.has(m);
+      return `<li role="option" data-m="${esc(m)}" aria-selected="${on}" class="${i===active?'active':''}"><span class="cb">${on?'&#10003;':''}</span><span class="nm">${hl(disp(m),q)}</span>${reg}</li>`; }).join(""); }
+  function toggle(name){ let s=pSel().slice(); if(name===ALLP){s=[ALLP];} else { s=s.filter(x=>x!==ALLP); const i=s.indexOf(name); if(i>=0)s.splice(i,1); else s.push(name); if(!s.length)s=[ALLP]; }
+    pg.sel[pg.level]=s; paint(lastQ); foot(); updSummary(); render(); }
+  function scrollA(){ const el=list.children[active]; if(el&&el.scrollIntoView)el.scrollIntoView({block:"nearest"}); }
+  btn.addEventListener("click",()=>{ panel.hidden?open():close(); });
+  input.addEventListener("input",()=>filter(input.value));
+  input.addEventListener("keydown",e=>{ if(e.key==="ArrowDown"){active=Math.min(active+1,matches.length-1);paint(lastQ);scrollA();e.preventDefault();}
+    else if(e.key==="ArrowUp"){active=Math.max(active-1,0);paint(lastQ);scrollA();e.preventDefault();}
+    else if(e.key==="Enter"){const p=active>=0?matches[active]:matches[0]; if(p){toggle(p);e.preventDefault();}}
+    else if(e.key==="Escape"){close();btn.focus();} });
+  list.addEventListener("mousedown",e=>{ const li=e.target.closest("li[data-m]"); if(li){toggle(li.dataset.m);e.preventDefault();} });
+  clearBtn.addEventListener("click",()=>{ pg.sel[pg.level]=[ALLP]; paint(lastQ); foot(); updSummary(); render(); });
+  document.addEventListener("mousedown",e=>{ if(!document.getElementById("p_combo").contains(e.target)) close(); });
+  setupPCombo._refresh=()=>{ updSummary(); foot(); input.placeholder=pg.level==="community"?"Search a community...":"Search a region..."; if(!panel.hidden){input.value="";filter("");} };
+  updSummary(); foot();
+}
+setupPCombo();
+document.querySelectorAll('.seg button[data-plvl]').forEach(b=>b.addEventListener("click",()=>{
+  if(pg.level===b.dataset.plvl)return; pg.level=b.dataset.plvl;
+  document.querySelectorAll('.seg button[data-plvl]').forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+  document.getElementById("p_geoLabel").textContent=pg.level==="community"?"Community":"Region";
+  setupPCombo._refresh(); render(); }));
+document.querySelectorAll('.seg button[data-pyr]').forEach(b=>b.addEventListener("click",()=>{
+  pg.year=b.dataset.pyr; document.querySelectorAll('.seg button[data-pyr]').forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); render(); }));
+render();
+const mo=new MutationObserver(()=>render()); mo.observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+};  /* ===== end POLICE TAB ===== */
+</script>
+
+<script>
+window.TabBoot.licensing=function(LIC){  /* ===== LICENSING TAB ===== */
+const ALLL="All BC";
+let lg={level:"region", year:"2025", sel:{region:[ALLL], community:[ALLL]}};
+const lList=()=> lg.level==="community"? [ALLL, ...LIC.munis] : [ALLL, ...LIC.regions];
+const lSel=()=> lg.sel[lg.level];
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+const fmtFull=n=>Math.round(n).toLocaleString();
+const titl=s=>String(s).replace(/\w\S*/g,t=>t.charAt(0).toUpperCase()+t.slice(1).toLowerCase());
+function muniSet(){ const sel=lSel(); if(sel.includes(ALLL))return null; const set=new Set();
+  if(lg.level==="community") sel.forEach(m=>set.add(m)); else for(const m in LIC.muniRegion){ if(sel.includes(LIC.muniRegion[m]))set.add(m);} return set; }
+function regionSet(){ const sel=lSel(); if(sel.includes(ALLL))return null; if(lg.level==="region")return new Set(sel);
+  const set=new Set(); sel.forEach(m=>{const r=LIC.muniRegion[m]; if(r)set.add(r);}); return set; }
+const yearOk=yr=> lg.year==="All"||yr===lg.year;
+function sumBy(obj, gs){ let r=null; for(const k in obj){ const p=k.split("|"); if(!yearOk(p[1]))continue; if(gs&&!gs.has(p[0]))continue;
+  const a=obj[k]; if(!r)r=a.slice(); else for(let i=0;i<a.length;i++)r[i]+=a[i]; } return r||[]; }
+function sumTotBy(gs){ let n=0,oop=0; for(const k in LIC.tot){ const p=k.split("|"); if(!yearOk(p[1]))continue; if(gs&&!gs.has(p[0]))continue;
+  n+=LIC.tot[k].n; oop+=LIC.tot[k].oop; } return {n,oop}; }
+function bars(elId, items){ const el=document.getElementById(elId); if(!el)return; const max=Math.max(1,...items.map(i=>i.value));
+  el.innerHTML=items.map(i=>{ const w=(100*i.value/max).toFixed(1);
+    return `<div class="barrow"><span class="lbl" title="${esc(i.label)}">${esc(i.label)}</span><span class="track"><span class="fill" style="width:${w}%"></span></span><span class="val">${fmtFull(i.value)}</span></div>`; }).join(""); }
+const zipTop=(labels,vals)=>labels.map((l,i)=>({label:l,value:vals[i]||0})).sort((a,b)=>b.value-a.value);
+const zipNat=(labels,vals)=>labels.map((l,i)=>({label:l,value:vals[i]||0}));
+function kpis(mset){
+  const tot=sumTotBy(mset), n=tot.n||1;
+  const typeArr=sumBy(LIC.data.type, mset), li=LIC.labels.type.indexOf("Learner"); const learn=li>=0?(typeArr[li]||0):0;
+  const ageArr=sumBy(LIC.data.age, mset); let sen=0; ["66-75","76-85","86+"].forEach(a=>{const i=LIC.labels.age.indexOf(a); if(i>=0)sen+=ageArr[i]||0;});
+  document.getElementById("l_kpis").innerHTML=`
+    <div class="kpi"><div class="k-label">Active licences</div><div class="k-val">${fmtFull(tot.n)}</div><div class="k-delta">as of snapshot</div></div>
+    <div class="kpi"><div class="k-label">Seniors (66+)</div><div class="k-val">${(100*sen/n).toFixed(1)}%</div><div class="k-delta">${fmtFull(sen)} licence holders</div></div>
+    <div class="kpi peakcard"><div class="k-label">Out-of-province origin</div><div class="k-val">${(100*tot.oop/n).toFixed(1)}%</div><div class="k-delta">${fmtFull(tot.oop)} transferred in</div></div>
+    <div class="kpi"><div class="k-label">Learner licences</div><div class="k-val">${(100*learn/n).toFixed(1)}%</div><div class="k-delta">${fmtFull(learn)} learners</div></div>`;
+}
+function examBars(rset){
+  const cells=LIC.exam.cells, classes=LIC.exam.classes;
+  const pass=classes.map(()=>0), tot=classes.map(()=>0);
+  for(const k in cells){ const p=k.split("|"); if(!yearOk(p[1]))continue; if(rset&&!rset.has(p[0]))continue;
+    const c=cells[k]; classes.forEach((cl,i)=>{ if(c[cl]){ pass[i]+=c[cl][0]; tot[i]+=c[cl][1]; } }); }
+  const items=classes.map((cl,i)=>({label:cl, total:tot[i], value:tot[i]?100*pass[i]/tot[i]:0})).filter(x=>x.total>0).sort((a,b)=>b.total-a.total);
+  const el=document.getElementById("l_exam");
+  el.innerHTML=items.length? items.map(it=>`<div class="barrow"><span class="lbl">${esc(it.label)}</span><span class="track"><span class="fill" style="width:${it.value.toFixed(1)}%"></span></span><span class="val pct">${it.value.toFixed(1)}% (${fmtFull(it.total)})</span></div>`).join("")
+    : '<div class="combo-empty">No exams for this selection</div>';
+}
+function render(){
+  const mset=muniSet(), rset=regionSet();
+  kpis(mset);
+  const byyear=LIC.years.map(y=>{ let n=0; for(const k in LIC.tot){ const p=k.split("|"); if(p[1]!=String(y))continue; if(mset&&!mset.has(p[0]))continue; n+=LIC.tot[k].n; } return {label:String(y), value:n, peak:String(y)===lg.year}; });
+  { const el=document.getElementById("l_byyear"); const max=Math.max(1,...byyear.map(i=>i.value));
+    el.innerHTML=byyear.map(i=>`<div class="barrow${i.peak?' peak':''}"><span class="lbl">${i.label}</span><span class="track"><span class="fill" style="width:${(100*i.value/max).toFixed(1)}%"></span></span><span class="val">${fmtFull(i.value)}</span></div>`).join(""); }
+  bars("l_class", zipTop(LIC.labels.classGroup, sumBy(LIC.data.classGroup,mset)).filter(x=>x.value>0));
+  bars("l_age", zipNat(LIC.labels.age, sumBy(LIC.data.age,mset)));
+  bars("l_gender", zipNat(LIC.labels.gender, sumBy(LIC.data.gender,mset)));
+  bars("l_juris", zipTop(LIC.labels.juris, sumBy(LIC.data.juris,mset)));
+  const s=lSel(); const gl=s.includes(ALLL)?"All BC":(lg.level==="community"?s.map(titl).join(", "):s.join(", "));
+  const yl=lg.year==="All"?"2022-2025 snapshots":lg.year;
+  document.getElementById("l_footNote").innerHTML=`<span class="hl">This view:</span> ${esc(gl)}, ${esc(yl)}. Exam pass rates are by test-centre region.`;
+}
+window.LicApp={render};
+function setupLCombo(){
+  const btn=document.getElementById("l_comboBtn"), panel=document.getElementById("l_comboPanel");
+  const input=document.getElementById("l_muniInput"), list=document.getElementById("l_muniList"), clearBtn=document.getElementById("l_selClear");
+  let matches=[],active=-1,lastQ="";
+  const disp=m=> (lg.level==="community"&&m!==ALLL)? titl(m) : m;
+  const open=()=>{panel.hidden=false;btn.setAttribute("aria-expanded","true");input.value="";filter("");setTimeout(()=>input.focus(),0);};
+  const close=()=>{panel.hidden=true;btn.setAttribute("aria-expanded","false");active=-1;};
+  function summary(){ const s=lSel(); if(s.length===1&&s[0]===ALLL)return "All BC"; if(s.length===1)return disp(s[0]);
+    return `${s.length} ${lg.level==="community"?"communities":"regions"} selected`; }
+  function updS(){ document.getElementById("l_comboSummary").textContent=summary(); }
+  function hl(t,q){ if(!q)return esc(t); const i=t.toLowerCase().indexOf(q); return i<0?esc(t):esc(t.slice(0,i))+"<mark>"+esc(t.slice(i,i+q.length))+"</mark>"+esc(t.slice(i+q.length)); }
+  function foot(){ const s=lSel(); document.getElementById("l_selCount").textContent=(s.length===1&&s[0]===ALLL)?"Showing all":`${s.length} selected`; }
+  function filter(raw){ const q=(raw||"").trim().toLowerCase(); lastQ=q;
+    matches=lList().filter(m=> !q||disp(m).toLowerCase().includes(q)||(lg.level==="community"&&(LIC.muniRegion[m]||"").toLowerCase().includes(q))).slice(0,500);
+    active=-1; paint(q); }
+  function paint(q){ if(!matches.length){ list.innerHTML=`<li class="combo-empty">No match</li>`; return; }
+    const sel=new Set(lSel());
+    list.innerHTML=matches.map((m,i)=>{ const reg=(lg.level==="community"&&m!==ALLL)?`<span class="reg">${esc(LIC.muniRegion[m]||"")}</span>`:""; const on=sel.has(m);
+      return `<li role="option" data-m="${esc(m)}" aria-selected="${on}" class="${i===active?'active':''}"><span class="cb">${on?'&#10003;':''}</span><span class="nm">${hl(disp(m),q)}</span>${reg}</li>`; }).join(""); }
+  function toggle(name){ let s=lSel().slice(); if(name===ALLL){s=[ALLL];} else { s=s.filter(x=>x!==ALLL); const i=s.indexOf(name); if(i>=0)s.splice(i,1); else s.push(name); if(!s.length)s=[ALLL]; }
+    lg.sel[lg.level]=s; paint(lastQ); foot(); updS(); render(); }
+  function scrollA(){ const el=list.children[active]; if(el&&el.scrollIntoView)el.scrollIntoView({block:"nearest"}); }
+  btn.addEventListener("click",()=>{ panel.hidden?open():close(); });
+  input.addEventListener("input",()=>filter(input.value));
+  input.addEventListener("keydown",e=>{ if(e.key==="ArrowDown"){active=Math.min(active+1,matches.length-1);paint(lastQ);scrollA();e.preventDefault();}
+    else if(e.key==="ArrowUp"){active=Math.max(active-1,0);paint(lastQ);scrollA();e.preventDefault();}
+    else if(e.key==="Enter"){const p=active>=0?matches[active]:matches[0]; if(p){toggle(p);e.preventDefault();}}
+    else if(e.key==="Escape"){close();btn.focus();} });
+  list.addEventListener("mousedown",e=>{ const li=e.target.closest("li[data-m]"); if(li){toggle(li.dataset.m);e.preventDefault();} });
+  clearBtn.addEventListener("click",()=>{ lg.sel[lg.level]=[ALLL]; paint(lastQ); foot(); updS(); render(); });
+  document.addEventListener("mousedown",e=>{ if(!document.getElementById("l_combo").contains(e.target)) close(); });
+  setupLCombo._refresh=()=>{ updS(); foot(); input.placeholder=lg.level==="community"?"Search a community...":"Search a region..."; if(!panel.hidden){input.value="";filter("");} };
+  updS(); foot();
+}
+setupLCombo();
+document.querySelectorAll('.seg button[data-llvl]').forEach(b=>b.addEventListener("click",()=>{
+  if(lg.level===b.dataset.llvl)return; lg.level=b.dataset.llvl;
+  document.querySelectorAll('.seg button[data-llvl]').forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false"));
+  document.getElementById("l_geoLabel").textContent=lg.level==="community"?"Community":"Region";
+  setupLCombo._refresh(); render(); }));
+document.querySelectorAll('.seg button[data-lyr]').forEach(b=>b.addEventListener("click",()=>{
+  lg.year=b.dataset.lyr; document.querySelectorAll('.seg button[data-lyr]').forEach(x=>x.setAttribute("aria-pressed",x===b?"true":"false")); render(); }));
+render();
+const mo=new MutationObserver(()=>render()); mo.observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+};  /* ===== end LICENSING TAB ===== */
+</script>
+
+<script>
+(function(){  /* ===== tab switch ===== */
+  const tabs=[...document.querySelectorAll(".app-tab")];
+  const panels={vehicles:document.getElementById("panel-vehicles"),crashes:document.getElementById("panel-crashes"),
+    police:document.getElementById("panel-police"),licensing:document.getElementById("panel-licensing")};
+  function show(name){
+    tabs.forEach(t=>t.setAttribute("aria-selected",t.dataset.tab===name?"true":"false"));
+    for(const k in panels) panels[k].hidden=(k!==name);
+    window.scrollTo(0,0);
+    const app={crashes:"CrashApp", police:"PoliceApp", licensing:"LicApp"}[name];
+    bootTab(name).then(()=>{ if(app && window[app] && !panels[name].hidden) window[app].render(); });
+  }
+  tabs.forEach(t=>t.addEventListener("click",()=>show(t.dataset.tab)));
+  bootTab("vehicles");
+})();
+</script>
