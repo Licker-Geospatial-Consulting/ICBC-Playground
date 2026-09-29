@@ -1,4 +1,4 @@
-# ICBC BC Road Data Explorer
+# BC Road Data Explorer
 
 A Python pipeline that turns the Insurance Corporation of British Columbia (ICBC) public
 data into a single interactive dashboard (plus an Excel workbook) for exploring BC's
@@ -113,6 +113,17 @@ How the site is set up for caching:
 - A visitor who only opens the Vehicle fleet tab downloads about 0.8 MB rather than
   the full 21 MB of uncompressed data.
 
+### Link previews (LinkedIn, Slack, etc.)
+
+The site build adds Open Graph tags pointing at `og-image.png`, a 1200x627 card made by
+`pipeline/build_preview.py` from a crash-map render and the logo in `assets/`. The site
+address used in those tags is `SITE_URL` in `pipeline/build_app.py`; change it if you move
+to a custom domain. After deploying a new preview, paste the URL into LinkedIn's
+[Post Inspector](https://www.linkedin.com/post-inspector/) to refresh its cached copy.
+
+A link such as `https://icbc-lgeo-analysis.pages.dev/#crashes` opens straight onto a tab
+(`#vehicles`, `#crashes`, `#police`, `#licensing`).
+
 ## Pipeline
 
 ```
@@ -142,6 +153,7 @@ pipeline/
   # assembly
   dashboard_template.html  the dashboard app (HTML/CSS/JS) with data placeholders
   build_app.py             single file -> output/dashboard.html; --split -> site/ (static site)
+  build_preview.py         compose the 1200x627 link-preview image -> assets/og-crashes.png
 
   # Excel workbook
   excel_write_data.py      write data tables to xlsx (xlsxwriter)

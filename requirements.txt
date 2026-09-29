@@ -6,3 +6,4 @@ openpyxl
 XlsxWriter
 pywin32            ; sys_platform == "win32"   # Excel COM (PivotTables + slicers)
 TableauScraper                                  # only used by the exploratory tableau_client.py
+pillow                                          # only for build_preview.py (link-preview image)

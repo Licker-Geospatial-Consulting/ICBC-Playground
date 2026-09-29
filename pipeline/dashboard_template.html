@@ -1,4 +1,4 @@
-<title>ICBC BC Road Data Explorer</title>
+<title>BC Road Data Explorer</title>
 
 <style>
   :root{
@@ -10,6 +10,7 @@
     --s6:#1a4f97; --s7:#143d78; --s8:#0d2b57; --sOther:#a2a8ae;
     --map-land:#eceff1; --map-out:#e2e5e8; --map-water:#c9d6e2; --map-road:#ffffff; --map-case:#d3d8dd;
     --map-major:#f6dca6; --map-majcase:#d9b77a; --map-label:#3b4148; --map-halo:#f4f6f8;
+    --logo-bg:transparent;
     --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   }
   @media (prefers-color-scheme:dark){
@@ -22,6 +23,7 @@
       --s6:#2a78d6; --s7:#2160b4; --s8:#164a90; --sOther:#7c8288;
     --map-land:#1b1e22; --map-out:#15171a; --map-water:#0f1b27; --map-road:#353a41; --map-case:#24282d;
     --map-major:#5b4f3a; --map-majcase:#3a3328; --map-label:#c9ced4; --map-halo:#111316;
+    --logo-bg:#f4f1e6;
     }
   }
   :root[data-theme="dark"]{
@@ -33,6 +35,7 @@
     --s6:#2a78d6; --s7:#2160b4; --s8:#164a90; --sOther:#7c8288;
     --map-land:#1b1e22; --map-out:#15171a; --map-water:#0f1b27; --map-road:#353a41; --map-case:#24282d;
     --map-major:#5b4f3a; --map-majcase:#3a3328; --map-label:#c9ced4; --map-halo:#111316;
+    --logo-bg:#f4f1e6;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--plane);color:var(--ink);font-family:var(--font);
@@ -142,7 +145,12 @@
   .app-brand{font-weight:700;font-size:15px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
   .app-dot{width:11px;height:11px;border-radius:50%;background:var(--accent);
     box-shadow:0 0 0 4px var(--accent-soft)}
-  .app-tabs{display:flex;gap:4px}
+  .app-tabs{display:flex;gap:4px;flex-wrap:wrap}
+  /* logo: transparent PNG with dark teal type, so it sits on a light chip in dark mode */
+  .app-logo{margin-left:auto;display:block;line-height:0;border-radius:8px;padding:3px 6px;background:var(--logo-bg)}
+  .app-logo img{display:block;height:44px;width:auto}
+  .app-logo:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  @media (max-width:640px){ .app-top{flex-wrap:wrap;gap:10px 16px} .app-logo img{height:36px} }
   .app-tab{font-family:var(--font);font-size:14px;font-weight:600;color:var(--ink2);background:none;
     border:none;border-radius:8px;padding:7px 14px;cursor:pointer}
   .app-tab:hover{background:var(--accent-soft)}
@@ -192,13 +200,16 @@
 </style>
 
 <header class="app-top">
-  <div class="app-brand"><span class="app-dot" aria-hidden="true"></span>ICBC BC Road Data Explorer</div>
+  <div class="app-brand"><span class="app-dot" aria-hidden="true"></span>BC Road Data Explorer</div>
   <nav class="app-tabs" role="tablist" aria-label="Datasets">
     <button class="app-tab" data-tab="vehicles" role="tab" aria-selected="true">Vehicle fleet</button>
     <button class="app-tab" data-tab="crashes" role="tab" aria-selected="false">Crashes</button>
     <button class="app-tab" data-tab="police" role="tab" aria-selected="false">Police crashes</button>
     <button class="app-tab" data-tab="licensing" role="tab" aria-selected="false">Licensing</button>
   </nav>
+  <a class="app-logo" href="https://www.lgeo.co/" target="_blank" rel="noopener" title="Licker Geospatial Consulting">
+    <img src="__LOGO_PNG__" alt="Licker Geospatial Consulting" width="86" height="44">
+  </a>
 </header>
 
 <section class="tab-panel" id="panel-vehicles" role="tabpanel">
@@ -1446,7 +1457,10 @@ const mo=new MutationObserver(()=>render()); mo.observe(document.documentElement
     const app={crashes:"CrashApp", police:"PoliceApp", licensing:"LicApp"}[name];
     bootTab(name).then(()=>{ if(app && window[app] && !panels[name].hidden) window[app].render(); });
   }
-  tabs.forEach(t=>t.addEventListener("click",()=>show(t.dataset.tab)));
-  bootTab("vehicles");
+  tabs.forEach(t=>t.addEventListener("click",()=>{ show(t.dataset.tab);
+    try{ history.replaceState(null,"","#"+t.dataset.tab); }catch(e){} }));
+  // a link like .../#crashes opens straight onto that tab
+  const start=(location.hash||"").slice(1);
+  if(start in panels && start!=="vehicles") show(start); else bootTab("vehicles");
 })();
 </script>
