@@ -48,6 +48,13 @@
   .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
   h1{font-size:22px;margin:2px 0 0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
   .sub{color:var(--ink2);font-size:13px;margin-top:3px;max-width:60ch}
+  /* tab heading row: title text left, logo right (filters wrap onto the next row) */
+  .head-intro{flex:1 1 100%;display:flex;align-items:flex-start;justify-content:space-between;gap:24px}
+  /* transparent PNG with dark teal type, so it sits on a light chip in dark mode */
+  .tab-logo{flex:none;display:block;line-height:0;border-radius:10px;padding:6px 10px;background:var(--logo-bg)}
+  .tab-logo img{display:block;height:64px;width:auto}
+  .tab-logo:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  @media (max-width:640px){ .tab-logo img{height:44px} }
   .controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
   .ctl label{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
     color:var(--muted);font-weight:600;margin-bottom:5px}
@@ -146,11 +153,7 @@
   .app-dot{width:11px;height:11px;border-radius:50%;background:var(--accent);
     box-shadow:0 0 0 4px var(--accent-soft)}
   .app-tabs{display:flex;gap:4px;flex-wrap:wrap}
-  /* logo: transparent PNG with dark teal type, so it sits on a light chip in dark mode */
-  .app-logo{margin-left:auto;display:block;line-height:0;border-radius:8px;padding:3px 6px;background:var(--logo-bg)}
-  .app-logo img{display:block;height:44px;width:auto}
-  .app-logo:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  @media (max-width:640px){ .app-top{flex-wrap:wrap;gap:10px 16px} .app-logo img{height:36px} }
+  @media (max-width:640px){ .app-top{flex-wrap:wrap;gap:10px 16px} }
   .app-tab{font-family:var(--font);font-size:14px;font-weight:600;color:var(--ink2);background:none;
     border:none;border-radius:8px;padding:7px 14px;cursor:pointer}
   .app-tab:hover{background:var(--accent-soft)}
@@ -207,18 +210,20 @@
     <button class="app-tab" data-tab="police" role="tab" aria-selected="false">Police crashes</button>
     <button class="app-tab" data-tab="licensing" role="tab" aria-selected="false">Licensing</button>
   </nav>
-  <a class="app-logo" href="https://www.lgeo.co/" target="_blank" rel="noopener" title="Licker Geospatial Consulting">
-    <img src="__LOGO_PNG__" alt="Licker Geospatial Consulting" width="86" height="44">
-  </a>
 </header>
 
 <section class="tab-panel" id="panel-vehicles" role="tabpanel">
 <header class="top">
   <div class="head-inner">
+    <div class="head-intro">
     <div>
       <div class="eyebrow">ICBC vehicle population &middot; 2021&ndash;2025</div>
       <h1>BC Vehicle Fleet Explorer</h1>
       <div class="sub">How many vehicles are registered in a place, and how big and heavy they are, by year. Select one or more communities (or regional districts) and a vehicle type; every panel updates.</div>
+    </div>
+    <a class="tab-logo" href="https://www.lgeo.co/" target="_blank" rel="noopener" title="Licker Geospatial Consulting">
+      <img src="__LOGO_PNG__" alt="Licker Geospatial Consulting" width="125" height="64">
+    </a>
     </div>
     <div class="controls">
       <div class="ctl">
@@ -283,10 +288,15 @@
 <section class="tab-panel" id="panel-crashes" role="tabpanel" hidden>
 <header class="top">
   <div class="head-inner">
+    <div class="head-intro">
     <div>
       <div class="eyebrow">ICBC reported crashes &middot; 2021&ndash;2025</div>
       <h1>Where &amp; when crashes happen</h1>
       <div class="sub">Crashes and casualties by location, road user, street, configuration and time. Pick a geography, a measure and a road-user filter; the map and every panel update.</div>
+    </div>
+    <a class="tab-logo" href="https://www.lgeo.co/" target="_blank" rel="noopener" title="Licker Geospatial Consulting">
+      <img src="__LOGO_PNG__" alt="Licker Geospatial Consulting" width="125" height="64">
+    </a>
     </div>
     <div class="controls">
       <div class="ctl">
@@ -372,10 +382,15 @@
 <section class="tab-panel" id="panel-police" role="tabpanel" hidden>
 <header class="top">
   <div class="head-inner">
+    <div class="head-intro">
     <div>
       <div class="eyebrow">Police-reported crashes (TAS) &middot; 2020&ndash;2024</div>
       <h1>How, why &amp; who</h1>
       <div class="sub">Police-attended crashes: collision types &amp; conditions, contributing factors and the people involved. Filter by region and year; every panel updates.</div>
+    </div>
+    <a class="tab-logo" href="https://www.lgeo.co/" target="_blank" rel="noopener" title="Licker Geospatial Consulting">
+      <img src="__LOGO_PNG__" alt="Licker Geospatial Consulting" width="125" height="64">
+    </a>
     </div>
     <div class="controls">
       <div class="ctl">
@@ -449,10 +464,15 @@
 <section class="tab-panel" id="panel-licensing" role="tabpanel" hidden>
 <header class="top">
   <div class="head-inner">
+    <div class="head-intro">
     <div>
       <div class="eyebrow">Active driver licences &middot; 2022&ndash;2025</div>
       <h1>Who holds a BC licence</h1>
       <div class="sub">Active driver licences by class, age, gender, when they were issued and where out-of-province holders came from. Filter by community/region and snapshot year.</div>
+    </div>
+    <a class="tab-logo" href="https://www.lgeo.co/" target="_blank" rel="noopener" title="Licker Geospatial Consulting">
+      <img src="__LOGO_PNG__" alt="Licker Geospatial Consulting" width="125" height="64">
+    </a>
     </div>
     <div class="controls">
       <div class="ctl">

@@ -23,6 +23,8 @@ OG_IMAGE = os.path.join(ASSETS, "og-crashes.png")     # 1200x627 link preview, m
 # Public address of the deployed site; social previews need absolute URLs
 SITE_URL = "https://icbc-lgeo-analysis.pages.dev"
 SITE_TITLE = "BC Road Data Explorer | Licker Geospatial Consulting"
+AUTHOR = "LGeo"
+PUBLISHED = "2026-09-29T00:00:00-07:00"     # first public release (Pacific time); fixed, not the build date
 SITE_DESC = ("Where crashes happen in British Columbia: 1.47 million ICBC-reported crashes "
              "mapped to 137,000 intersections, plus the vehicle fleet, police-reported crashes "
              "and driver licensing by community. Built from ICBC open data.")
@@ -74,11 +76,19 @@ def site_head():
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
         f'<meta name="description" content="{SITE_DESC}">',
+        f'<link rel="canonical" href="{SITE_URL}/">',
         '<meta property="og:type" content="website">',
+        '<meta property="og:site_name" content="Licker Geospatial Consulting">',
+        f'<meta name="author" content="{AUTHOR}">',
+        # LinkedIn reads publish_date / og:publish_date; article:published_time is the OG standard
+        f'<meta name="publish_date" property="og:publish_date" content="{PUBLISHED}">',
+        f'<meta property="article:published_time" content="{PUBLISHED}">',
         f'<meta property="og:url" content="{SITE_URL}/">',
         f'<meta property="og:title" content="{SITE_TITLE}">',
         f'<meta property="og:description" content="{SITE_DESC}">',
         f'<meta property="og:image" content="{img}">',
+        f'<meta property="og:image:secure_url" content="{img}">',
+        '<meta property="og:image:type" content="image/png">',
         '<meta property="og:image:width" content="1200">',
         '<meta property="og:image:height" content="627">',
         '<meta property="og:image:alt" content="Crash map of Metro Vancouver with bubbles at intersections, from the BC Road Data Explorer">',
@@ -101,8 +111,16 @@ def build_single(html):
     report(OUT, html)
 
 
+def as_document(html):
+    """Wrap the template (which starts with <title> + one <style> block, the form the
+    Claude artifact expects) in a complete document: head with the social tags, then body."""
+    head_end = html.index("</style>") + len("</style>")
+    return (site_head() + html[:head_end] + "\n</head>\n<body>\n"
+            + html[head_end:] + "\n</body>\n</html>\n")
+
+
 def build_split(html):
-    html = site_head() + html.replace("__LOGO_PNG__", logo_uri())
+    html = as_document(html.replace("__LOGO_PNG__", logo_uri()))
     data_dir = os.path.join(SITE_DIR, "data")
     shutil.rmtree(data_dir, ignore_errors=True)       # drop stale hashed files
     os.makedirs(data_dir)
@@ -121,6 +139,9 @@ def build_split(html):
     index = os.path.join(SITE_DIR, "index.html")
     open(index, "w", encoding="utf-8").write(html)
     open(os.path.join(SITE_DIR, "_headers"), "w", encoding="utf-8").write(HEADERS)
+    # without this, Cloudflare Pages answers /robots.txt with index.html
+    open(os.path.join(SITE_DIR, "robots.txt"), "w", encoding="utf-8").write(
+        "User-agent: *\nAllow: /\n")
     if os.path.exists(OG_IMAGE):
         shutil.copyfile(OG_IMAGE, os.path.join(SITE_DIR, "og-image.png"))
     else:
